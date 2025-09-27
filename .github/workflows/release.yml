@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit message
+        id: check
+        run: |
+          MSG=$(git log -1 --pretty=%B)
+          if [[ "$MSG" == feat:* ]] || [[ "$MSG" == fix:* ]] || [[ "$MSG" == *"BREAKING"* ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate version
+        if: steps.check.outputs.should_release == 'true'
+        id: version
+        run: |
+          CURRENT_VERSION=$(grep 'version = ' pyproject.toml | cut -d'"' -f2)
+          MSG=$(git log -1 --pretty=%B)
+
+          if [[ "$MSG" == *"BREAKING"* ]]; then
+            VERSION_BUMP="major"
+          elif [[ "$MSG" == feat:* ]]; then
+            VERSION_BUMP="minor"
+          else
+            VERSION_BUMP="patch"
+          fi
+
+          NEW_VERSION=$(python3 -c "
+          v = '$CURRENT_VERSION'.split('.')
+          if '$VERSION_BUMP' == 'major':
+              v[0] = str(int(v[0]) + 1)
+              v[1] = '0'
+              v[2] = '0'
+          elif '$VERSION_BUMP' == 'minor':
+              v[1] = str(int(v[1]) + 1)
+              v[2] = '0'
+          else:
+              v[2] = str(int(v[2]) + 1)
+          print('.'.join(v))
+          ")
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version files
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          sed -i "s/version = \".*\"/version = \"${{ steps.version.outputs.new_version }}\"/" pyproject.toml
+          echo "__version__ = \"${{ steps.version.outputs.new_version }}\"" > src/llm_cli_core/__version__.py
+
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add pyproject.toml src/llm_cli_core/__version__.py
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          git push
+
+      - name: Create release
+        if: steps.check.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.new_version }}
+          name: v${{ steps.version.outputs.new_version }}
+          generate_release_notes: true
