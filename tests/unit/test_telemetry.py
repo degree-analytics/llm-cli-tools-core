@@ -1,6 +1,4 @@
 """Tests for telemetry functionality"""
-
-import pytest
 from unittest.mock import Mock, patch
 from llm_cli_core import (
     track_ai_call,
@@ -104,7 +102,7 @@ def test_telemetry_tracker_record_methods():
     assert tracker.model == "gpt-4"
 
 
-@patch('llm_cli_core.telemetry.core.requests.post')
+@patch('requests.post')
 def test_send_metrics(mock_post):
     """Test sending metrics to pushgateway"""
     mock_post.return_value.status_code = 200
@@ -117,7 +115,7 @@ def test_send_metrics(mock_post):
     mock_post.assert_called_once()
 
 
-@patch('llm_cli_core.telemetry.core.requests.post')
+@patch('requests.post')
 def test_send_metrics_failure(mock_post):
     """Test handling of metrics send failure"""
     mock_post.return_value.status_code = 500
@@ -133,7 +131,7 @@ def test_legacy_send_agent_metrics():
     """Test legacy send_agent_metrics function"""
     from llm_cli_core import send_agent_metrics
 
-    with patch('llm_cli_core.telemetry.core.requests.post') as mock_post:
+    with patch('requests.post') as mock_post:
         mock_post.return_value.status_code = 200
 
         result = send_agent_metrics(

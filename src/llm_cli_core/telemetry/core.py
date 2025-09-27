@@ -28,8 +28,7 @@ Usage:
 import os
 import time
 import logging
-import json
-from typing import Dict, Any, Optional, Union, NamedTuple
+from typing import Dict, Any, Union, NamedTuple
 from dataclasses import dataclass
 from contextlib import contextmanager
 
@@ -226,7 +225,7 @@ def track_ai_call(agent_name: str, operation: str):
 
     try:
         yield tracker
-    except Exception as e:
+    except Exception:
         tracker.success = False
         raise
     finally:
