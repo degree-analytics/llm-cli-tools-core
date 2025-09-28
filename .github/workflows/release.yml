@@ -15,6 +15,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Ensure Python 3.12 with UV
+        run: uv python install 3.12
+
       - name: Check commit message
         id: check
         run: |
@@ -29,7 +37,7 @@ jobs:
         if: steps.check.outputs.should_release == 'true'
         id: version
         run: |
-          CURRENT_VERSION=$(python3 - <<'PY'
+          CURRENT_VERSION=$(uv run --python 3.12 python - <<'PY'
 import tomllib
 with open('pyproject.toml', 'rb') as f:
     print(tomllib.load(f)['project']['version'])
@@ -45,7 +53,7 @@ PY
             VERSION_BUMP="patch"
           fi
 
-          NEW_VERSION=$(CURRENT_VERSION="$CURRENT_VERSION" VERSION_BUMP="$VERSION_BUMP" python3 - <<'PY'
+          NEW_VERSION=$(CURRENT_VERSION="$CURRENT_VERSION" VERSION_BUMP="$VERSION_BUMP" uv run --python 3.12 python - <<'PY'
 import os
 
 version = os.environ["CURRENT_VERSION"].strip()
