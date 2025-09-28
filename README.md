@@ -10,14 +10,26 @@ status: "Active"
 
 # llm-cli-tools-core
 
-Core telemetry and utilities for LLM CLI tools. Provides unified telemetry
-tracking, storage, and configuration for AI-powered command-line tools.
+Shared core for Degree Analytics LLM command-line tooling. The package unifies
+telemetry tracking, JSONL storage, analytics, and configuration so that apps
+such as Spacewalker, Mímir, and future CLIs import one source of truth instead
+of duplicating logic.
+
+## What Lives Here
+
+- Telemetry tracker context managers and helpers
+- JSONL storage backends and analytics readers
+- CLI entry points (`llm-telemetry`) for cost and usage reporting
+- Cross-provider token and pricing adapters plus configuration utilities
+
+The name signals this is the core layer for the `llm-cli-tools` family: keep
+shared primitives here and leave app-specific workflows in their home repos.
 
 ## When to Use This
 
-- Consolidate telemetry, cost, and token accounting across AI-driven CLIs.
-- Share a single instrumentation library between repositories such as
-  Spacewalker and Mímir.
+- Depend on a single telemetry library across AI-driven CLIs.
+- Add shared primitives that multiple CLI repos will reuse.
+- Prototype storage or analytics that later surface in Spacewalker or Mímir.
 
 ## Prerequisites
 
@@ -37,25 +49,39 @@ tracking, storage, and configuration for AI-powered command-line tools.
 
 ## Installation
 
-### From GitHub Release (Recommended)
+### From GitHub Release (recommended)
 
 ```bash
-# Install specific version
-uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.0"
-
-# Install latest from main branch
-uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@main"
+# Replace v0.1.3 with the latest tag from the releases page
+uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.3"
 ```
 
-### For Development
+Releases are cut automatically whenever a `feat:` or `fix:` (or `BREAKING`)
+commit hits `main` and CI passes, so the newest tag always reflects the latest
+stable build. Pull the `main` branch version only when you need unreleased
+changes.
+
+### Local development (GT workflow)
 
 ```bash
 git clone https://github.com/degree-analytics/llm-cli-tools-core
 cd llm-cli-tools-core
-just setup          # Set up development environment
-just test           # Run tests
-just install-local  # Install in editable mode
+just setup
+
+# Start a stack entry the GT way
+gt create --all -m "feat: short summary"
+
+# Run the usual verification loops
+just lint check
+just test
+just ci
 ```
+
+Use `gt modify` to revise commits and `gt submit` to open pull requests. Avoid
+`git push` or manual tagging; the release workflow handles version bumps.
+
+For editable installs while developing, run `just install-local` after the
+environment is set up.
 
 ## Quick Start
 
@@ -112,6 +138,16 @@ send_agent_metrics(
   passes.
 - Execute the quick start example against a sandbox provider and confirm metrics
   are recorded as expected.
+
+## Justfile commands
+
+- `just setup` – create the UV environment and sync dependencies
+- `just lint check` – run Ruff without fixing
+- `just lint format` – format code then rerun Ruff with `--fix`
+- `just test [target]` – run all, unit, or integration tests
+- `just ci` – execute lint plus tests exactly like the CI workflow
+- `just docs check` – lint markdown, run cspell, and verify links
+- `just install-local` – install the package in editable mode
 
 ## Configuration
 
@@ -190,15 +226,19 @@ Telemetry is stored as newline-delimited JSON in the configured directory
 Prompts/responses are written to `prompts.jsonl` and `responses.jsonl` only when
 explicitly enabled via `LLM_STORE_PROMPTS` / `LLM_STORE_RESPONSES`.
 
-## CLI Analytics
+## `llm-telemetry` CLI
 
-A first analytics command ships in v0.2.0:
+Installing the package exposes the `llm-telemetry` entry point. The CLI reads
+the JSONL data under `LLM_TELEMETRY_DIR` and surfaces cost and token summaries
+for finance and operations reviews.
+
+### `costs` subcommand
 
 ```bash
 # Human-friendly table (last 30 days by default)
 llm-telemetry costs
 
-# JSON output for scripts / dashboards
+# JSON output for scripts or dashboards
 llm-telemetry costs --json
 
 # Filter by project, agent, status, or model
@@ -206,9 +246,14 @@ llm-telemetry costs --project spacewalker --agent doc-finder \
   --status success --days 7
 ```
 
-Output includes total cost, total tokens, and breakdowns by model and agent.
-Pricing data is cached locally and refreshed automatically (at most once every 7
-days).
+- `--json` returns machine-friendly output for dashboards.
+- `--days` adjusts the look-back window (default 30 days).
+- `--project`, `--agent`, `--status`, and `--model` narrow the dataset.
+- Pricing data is cached locally and refreshed automatically (at most once every
+  seven days).
+
+Future commands will reuse the same storage readers, so keep telemetry writes
+enabled in environments where analytics matter.
 
 ## GitHub Automation
 
