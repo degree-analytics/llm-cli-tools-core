@@ -1,6 +1,29 @@
+---
+purpose:
+  "Document llm-cli-tools-core capabilities, installation, and quick start
+  usage."
+audience: "Developers, integrators, and maintainers"
+owner: "Core AI Tools"
+review: "Quarterly (Jan, Apr, Jul, Oct)"
+status: "Active"
+---
+
 # llm-cli-tools-core
 
-Core telemetry and utilities for LLM CLI tools. Provides unified telemetry tracking, storage, and configuration for AI-powered command-line tools.
+Core telemetry and utilities for LLM CLI tools. Provides unified telemetry
+tracking, storage, and configuration for AI-powered command-line tools.
+
+## When to Use This
+
+- Consolidate telemetry, cost, and token accounting across AI-driven CLIs.
+- Share a single instrumentation library between repositories such as
+  Spacewalker and Mímir.
+
+## Prerequisites
+
+- Python 3.11 or newer with [`uv`](https://docs.astral.sh/uv/) installed.
+- Read access to the GitHub repository releases (or main branch) when
+  installing.
 
 ## Features
 
@@ -15,6 +38,7 @@ Core telemetry and utilities for LLM CLI tools. Provides unified telemetry track
 ## Installation
 
 ### From GitHub Release (Recommended)
+
 ```bash
 # Install specific version
 uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.0"
@@ -24,8 +48,9 @@ uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm
 ```
 
 ### For Development
+
 ```bash
-git clone https://github.com/spacecargo/llm-cli-tools-core
+git clone https://github.com/degree-analytics/llm-cli-tools-core
 cd llm-cli-tools-core
 just setup          # Set up development environment
 just test           # Run tests
@@ -35,6 +60,7 @@ just install-local  # Install in editable mode
 ## Quick Start
 
 ### Basic Usage
+
 ```python
 from llm_cli_core import track_ai_call, OpenRouterTokens
 
@@ -50,6 +76,7 @@ with track_ai_call("my-agent", "document-search") as tracker:
 ```
 
 ### Different Provider Support
+
 ```python
 # OpenRouter
 from llm_cli_core import OpenRouterTokens
@@ -65,6 +92,7 @@ tracker.record_tokens(OpenAITokens(openai_response_json))
 ```
 
 ### Legacy Compatibility
+
 ```python
 from llm_cli_core import send_agent_metrics
 
@@ -77,6 +105,13 @@ send_agent_metrics(
     cost_usd=0.002
 )
 ```
+
+## Verification
+
+- Run `just test` before publishing changes to confirm the telemetry suite
+  passes.
+- Execute the quick start example against a sandbox provider and confirm metrics
+  are recorded as expected.
 
 ## Configuration
 
@@ -104,6 +139,7 @@ CLAUDE_USER_ID=                          # Optional: Override user ID
 ## Development
 
 ### Setup Development Environment
+
 ```bash
 # Clone the repository
 git clone https://github.com/spacecargo/llm-cli-tools-core
@@ -125,9 +161,12 @@ just ci
 
 ### GitHub App Access For CI
 
-Org repositories that need read access to `llm-cli-tools-core` via GitHub Actions should follow the shared GitHub App setup described in `docs/development/github-app-integration.md`.
+Org repositories that need read access to `llm-cli-tools-core` via GitHub
+Actions should follow the shared GitHub App setup described in
+`docs/development/github-app-integration.md`.
 
 ### Running Tests
+
 ```bash
 just test           # Run all tests
 just test unit      # Run unit tests only
@@ -136,9 +175,10 @@ just test integration  # Run integration tests
 
 ## Telemetry Storage
 
-Telemetry is stored as newline-delimited JSON in the configured directory (default: `.llm-telemetry/`).
+Telemetry is stored as newline-delimited JSON in the configured directory
+(default: `.llm-telemetry/`).
 
-```
+```text
 .llm-telemetry/
 ├── 2025-01-27/
 │   └── telemetry.jsonl       # One record per AI call
@@ -147,7 +187,8 @@ Telemetry is stored as newline-delimited JSON in the configured directory (defau
 └── summary.json              # Rolling totals (cost, tokens, per-agent/model)
 ```
 
-Prompts/responses are written to `prompts.jsonl` and `responses.jsonl` only when explicitly enabled via `LLM_STORE_PROMPTS` / `LLM_STORE_RESPONSES`.
+Prompts/responses are written to `prompts.jsonl` and `responses.jsonl` only when
+explicitly enabled via `LLM_STORE_PROMPTS` / `LLM_STORE_RESPONSES`.
 
 ## CLI Analytics
 
@@ -161,29 +202,42 @@ llm-telemetry costs
 llm-telemetry costs --json
 
 # Filter by project, agent, status, or model
-llm-telemetry costs --project spacewalker --agent doc-finder --status success --days 7
+llm-telemetry costs --project spacewalker --agent doc-finder \
+  --status success --days 7
 ```
 
-Output includes total cost, total tokens, and breakdowns by model and agent. Pricing data is cached locally and refreshed automatically (at most once every 7 days).
+Output includes total cost, total tokens, and breakdowns by model and agent.
+Pricing data is cached locally and refreshed automatically (at most once every 7
+days).
 
 ## GitHub Automation
 
-This repository ships the same Claude and Codex review automation used in our other projects:
+This repository ships the same Claude and Codex review automation used in our
+other projects:
 
-- `.github/workflows/claude.yml` – trigger with `@claude` or `/claude` comments to request targeted AI reviews (docs, correctness, overengineering, justfile). Requires Anthropic API credentials (`ANTHROPIC_API_KEY`, optional secrets described in the workflow) and supports manual `workflow_dispatch` runs.
-- `.github/workflows/codex-review.yml` – trigger with `@codex` or `/codex` comments for GPT-based reviews. Requires `OPENAI_API_KEY` and posts sticky summaries plus inline comments.
+- `.github/workflows/claude.yml` – trigger with `@claude` or `/claude` comments
+  to request targeted AI reviews (docs, correctness, overengineering, justfile).
+  Requires Anthropic API credentials (`ANTHROPIC_API_KEY`, optional secrets
+  described in the workflow) and supports manual `workflow_dispatch` runs.
+- `.github/workflows/codex-review.yml` – trigger with `@codex` or `/codex`
+  comments for GPT-based reviews. Requires `OPENAI_API_KEY` and posts sticky
+  summaries plus inline comments.
 
-Both workflows rely on repository/organization variables (e.g. `CLAUDE_MAX_TURNS`) and secrets mirroring the Spacewalker setup. Copy those values into this repo before enabling the automations.
+Both workflows rely on repository/organization variables (e.g.
+`CLAUDE_MAX_TURNS`) and secrets mirroring the Spacewalker setup. Copy those
+values into this repo before enabling the automations.
 
 For day-to-day usage tips and GT/Claude best practices, see:
 
-- `docs/claude-components/deployment-gt-workflow.md` – required GT branching workflow
-- `docs/development/claude-commands.md` – available slash commands (including Ground Truth)
+- `docs/claude-components/deployment-gt-workflow.md` – required GT branching
+  workflow
+- `docs/development/claude-commands.md` – available slash commands (including
+  Ground Truth)
 - `docs/workflows/claude-review-workflows.md` – how multi-focus reviews operate
 
 ## Architecture
 
-```
+```text
 llm-cli-tools-core/
 ├── analytics/              # Aggregations used by the CLI
 │   └── costs.py
@@ -207,6 +261,7 @@ llm-cli-tools-core/
 6. Push to your fork and create a Pull Request
 
 ### Commit Message Format
+
 - `feat:` - New features (triggers minor version bump)
 - `fix:` - Bug fixes (triggers patch version bump)
 - `chore:` - Maintenance tasks (no version bump)
@@ -233,7 +288,8 @@ LLM_PUSHGATEWAY_URL=http://localhost:9101
 ```
 
 Metrics format:
-```
+
+```text
 ai_agent_usage_total{agent_name="...", operation="...", model="..."}
 ai_agent_tokens_total{agent_name="...", model="..."}
 ai_agent_cost_usd_total{agent_name="...", model="..."}
@@ -247,7 +303,9 @@ MIT
 ## Support
 
 For issues and questions:
-- Open an issue on [GitHub](https://github.com/spacecargo/llm-cli-tools-core/issues)
+
+- Open an issue on
+  [GitHub](https://github.com/degree-analytics/llm-cli-tools-core/issues)
 - Check the [CLAUDE.md](CLAUDE.md) for development guidelines
 
 ## Roadmap

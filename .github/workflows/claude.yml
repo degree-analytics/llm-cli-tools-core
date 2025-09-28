@@ -143,9 +143,9 @@ jobs:
         id: models
         run: |
           # Allow repo vars to override defaults
-          docs_model="${{ vars.CLAUDE_MODEL_DOCS || steps.models_defaults.outputs.HAIKU35 }}"
-          just_model="${{ vars.CLAUDE_MODEL_JUSTFILE || steps.models_defaults.outputs.HAIKU35 }}"
-          corr_model="${{ vars.CLAUDE_MODEL_CORRECTNESS || steps.models_defaults.outputs.SONNET4 }}"
+          docs_model="${{ vars.CLAUDE_MODEL_DOCS || steps.models_defaults.outputs.SONNET4 }}"
+          just_model="${{ vars.CLAUDE_MODEL_JUSTFILE || steps.models_defaults.outputs.SONNET4 }}"
+          corr_model="${{ vars.CLAUDE_MODEL_CORRECTNESS || steps.models_defaults.outputs.OPUS4 }}"
           over_model="${{ vars.CLAUDE_MODEL_OVERENGINEERING || steps.models_defaults.outputs.SONNET4 }}"
 
           echo "docs_model=$docs_model" >> $GITHUB_OUTPUT

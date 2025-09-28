@@ -1,0 +1,11 @@
+cache = true
+max_concurrency = 4
+retry_wait_time = 2
+max_redirects = 5
+
+exclude = [
+  "https://github.com/degree-analytics/llm-cli-tools-core/issues",
+]
+
+exclude_dupe = true
+exclude_all_private = true

@@ -1,0 +1,30 @@
+version: "0.2"
+language: en
+words:
+  - Mímir
+  - openrouter
+  - pushgateway
+  - Pushgateway
+  - PUSHGATEWAY
+  - overengineering
+  - justfile
+  - automations
+  - dataclass
+  - Groundtruth
+  - Claude
+  - Spacewalker
+  - pytest
+  - pyproject
+  - chadwalters
+  - getenv
+  - commandname
+  - fastapi
+  - Runbook
+  - anthropics
+  - MTOK
+flagWords: []
+ignorePaths:
+  - "**/node_modules/**"
+  - "**/.git/**"
+  - "**/dist/**"
+  - "**/.cache/**"
