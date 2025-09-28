@@ -45,19 +45,25 @@ PY
             VERSION_BUMP="patch"
           fi
 
-          NEW_VERSION=$(python3 - <<'PY'
-version = "$CURRENT_VERSION"
-bump = "$VERSION_BUMP"
-parts = version.strip().split('.')
+          NEW_VERSION=$(CURRENT_VERSION="$CURRENT_VERSION" VERSION_BUMP="$VERSION_BUMP" python3 - <<'PY'
+import os
+
+version = os.environ["CURRENT_VERSION"].strip()
+bump = os.environ["VERSION_BUMP"].strip()
+
+parts = version.split('.')
 if len(parts) != 3 or not all(p.isdigit() for p in parts):
     raise SystemExit(f"Invalid semantic version: {version!r}")
+
 major, minor, patch = map(int, parts)
+
 if bump == 'major':
     major, minor, patch = major + 1, 0, 0
 elif bump == 'minor':
     minor, patch = minor + 1, 0
 else:
     patch += 1
+
 print(f"{major}.{minor}.{patch}")
 PY
           )
