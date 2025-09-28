@@ -123,6 +123,10 @@ just lint check
 just ci
 ```
 
+### GitHub App Access For CI
+
+Org repositories that need read access to `llm-cli-tools-core` via GitHub Actions should follow the shared GitHub App setup described in `docs/development/github-app-integration.md`.
+
 ### Running Tests
 ```bash
 just test           # Run all tests
