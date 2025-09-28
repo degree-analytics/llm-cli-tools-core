@@ -280,6 +280,15 @@ For day-to-day usage tips and GT/Claude best practices, see:
   Ground Truth)
 - `docs/workflows/claude-review-workflows.md` – how multi-focus reviews operate
 
+## Release Workflow
+
+- Commits merged into `main` with `feat:`/`fix:` prefixes or `BREAKING` in the
+  message trigger `.github/workflows/release.yml`.
+- The job bumps `pyproject.toml` and `src/llm_cli_core/__version__.py`, pushes
+  `chore: bump version to x.y.z`, and tags `vX.Y.Z`.
+- Because tagging is automated, prefer letting the workflow publish releases and
+  only tag manually if automation fails.
+
 ## Architecture
 
 ```text
