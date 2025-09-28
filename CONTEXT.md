@@ -156,6 +156,12 @@ class Config:
         # ... etc
 ```
 
+Install via:
+
+```
+uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.0"
+```
+
 #### 5. **Integration Testing** (Priority: MEDIUM)
 
 - Test with real projects (spacewalker, mimir)

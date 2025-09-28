@@ -55,16 +55,30 @@ echo "🧡 Running cspell…"
 npx --yes cspell@7.2.0 lint --config "$DOCS_CSPELL_CONFIG" $DOCS_CSPELL_FILES
 
 echo "🌐 Running lychee…"
-REQUIRED_LYCHEE_VERSION=${DOCS_LYCHEE_VERSION:-0.13.0}
+MIN_LYCHEE_VERSION=${DOCS_LYCHEE_VERSION:-0.13.0}
+MAX_LYCHEE_VERSION=${DOCS_LYCHEE_MAX_VERSION:-0.14.0}
 
 if ! command -v lychee >/dev/null 2>&1; then
-  echo "❌ lychee not found. Install it with: cargo install lychee --version ${REQUIRED_LYCHEE_VERSION}" >&2
+  echo "❌ lychee not found. Install via: cargo install lychee --version ${MIN_LYCHEE_VERSION}" >&2
   exit 1
 fi
 
 installed=$(lychee --version | awk '{print $2}')
-if [ "$installed" != "$REQUIRED_LYCHEE_VERSION" ]; then
-  echo "❌ lychee $REQUIRED_LYCHEE_VERSION required (found $installed). Reinstall with: cargo install lychee --version $REQUIRED_LYCHEE_VERSION" >&2
+version_ge() {
+  printf '%s
+' "$1" "$2" | sort -V | tail -n1 | grep -qx "$2"
+}
+version_lt() {
+  [ "$1" = "$2" ] && return 1
+  printf '%s
+' "$1" "$2" | sort -V | head -n1 | grep -qx "$1"
+}
+if ! version_ge "$installed" "$MIN_LYCHEE_VERSION"; then
+  echo "❌ lychee >= $MIN_LYCHEE_VERSION required (found $installed). Reinstall with: cargo install lychee --version $MIN_LYCHEE_VERSION" >&2
+  exit 1
+fi
+if ! version_lt "$installed" "$MAX_LYCHEE_VERSION"; then
+  echo "❌ lychee versions >= $MAX_LYCHEE_VERSION are not yet validated (found $installed). Pin to: cargo install lychee --version $MIN_LYCHEE_VERSION" >&2
   exit 1
 fi
 

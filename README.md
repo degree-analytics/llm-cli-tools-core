@@ -142,7 +142,7 @@ CLAUDE_USER_ID=                          # Optional: Override user ID
 
 ```bash
 # Clone the repository
-git clone https://github.com/spacecargo/llm-cli-tools-core
+git clone https://github.com/degree-analytics/llm-cli-tools-core
 cd llm-cli-tools-core
 
 # Set up UV environment

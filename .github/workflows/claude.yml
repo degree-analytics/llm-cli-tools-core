@@ -142,11 +142,24 @@ jobs:
       - name: Determine models (per category)
         id: models
         run: |
-          # Allow repo vars to override defaults
-          docs_model="${{ vars.CLAUDE_MODEL_DOCS || steps.models_defaults.outputs.SONNET4 }}"
-          just_model="${{ vars.CLAUDE_MODEL_JUSTFILE || steps.models_defaults.outputs.SONNET4 }}"
-          corr_model="${{ vars.CLAUDE_MODEL_CORRECTNESS || steps.models_defaults.outputs.OPUS4 }}"
-          over_model="${{ vars.CLAUDE_MODEL_OVERENGINEERING || steps.models_defaults.outputs.SONNET4 }}"
+          sanitize() {
+            local candidate="$1"
+            local default="$2"
+            if [[ -z "$candidate" ]]; then
+              echo "$default"
+              return
+            fi
+            if echo "$candidate" | grep -Eq '^claude-.*-(opus|sonnet)-4'; then
+              echo "$candidate"
+            else
+              echo "$default"
+            fi
+          }
+
+          docs_model=$(sanitize "${{ vars.CLAUDE_MODEL_DOCS }}" "${{ steps.models_defaults.outputs.SONNET4 }}")
+          just_model=$(sanitize "${{ vars.CLAUDE_MODEL_JUSTFILE }}" "${{ steps.models_defaults.outputs.SONNET4 }}")
+          corr_model=$(sanitize "${{ vars.CLAUDE_MODEL_CORRECTNESS }}" "${{ steps.models_defaults.outputs.OPUS4 }}")
+          over_model=$(sanitize "${{ vars.CLAUDE_MODEL_OVERENGINEERING }}" "${{ steps.models_defaults.outputs.SONNET4 }}")
 
           echo "docs_model=$docs_model" >> $GITHUB_OUTPUT
           echo "just_model=$just_model" >> $GITHUB_OUTPUT
