@@ -94,30 +94,26 @@ follow the templates in `.docs-templates/`.
 
 ## Frontmatter fields
 
-| Field     | Purpose                                      | Notes                          |
-|-----------|----------------------------------------------|--------------------------------|
-| `purpose` | One-line statement of why the doc exists      | Displayed at top of documents  |
-| `audience`| Primary readers (roles/teams)                 | Guides tone and depth          |
-| `owner`   | Accountable individual or team                | Update when stewardship shifts |
-| `review`  | Planned review cadence (e.g., Quarterly)      | Drives doc hygiene reminders   |
-| `status`  | Active / Draft / Deprecated lifecycle         | Signals whether doc is current |
+- `purpose`: One-line statement of why the doc exists.
+- `audience`: Primary readers (roles/teams) guiding tone and depth.
+- `owner`: Accountable individual or team; update when stewardship shifts.
+- `review`: Planned cadence (e.g., Quarterly) used for doc hygiene reminders.
+- `status`: Lifecycle state (Active / Draft / Deprecated) signalling freshness.
 
 ## Docs validation configuration
 
-The docs tooling reads environment variables (set via the shell or a `.env` file) to override defaults:
+The docs tooling reads environment variables (shell or `.env`) to override defaults:
 
 - `DOCS_CSPELL_FILES` – files/globs passed to cspell
 - `DOCS_LYCHEE_FILES` – files/globs passed to lychee
-- `DOCS_LYCHEE_ARGS` – additional lychee arguments
+- `DOCS_LYCHEE_ARGS` – extra flags for lychee
 - `DOCS_CSPELL_CONFIG` – alternate cspell config path
 - `DOCS_LYCHEE_CONFIG` – alternate lychee config path
 - `DOCS_LYCHEE_VERSION` – required lychee version (default `0.13.0`)
 
-Use these overrides sparingly; the CI workflow runs with the defaults defined in `scripts/docs_phase2.sh`.
+Use overrides sparingly; CI runs with the defaults defined in `scripts/docs_phase2.sh`.
 
 ## Release notes
 
-- Release automation bumps versions when commits merged to `main` use a `feat:`
-  or `fix:` prefix.
-- Include documentation-impacting changes in those commits when they should
-  appear in the generated changelog.
+- Version bumps occur when commits merged to `main` use `feat:` or `fix:`.
+- Add doc-impacting changes to those commits so the changelog stays accurate.
