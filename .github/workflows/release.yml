@@ -98,7 +98,7 @@ jobs:
           # Only update version in [project] section
           content = re.sub(
               r'(\[project\][^\[]*version = ")[^"]+(")',
-              rf'\1{new_version}\2',
+              rf'\g<1>{new_version}\g<2>',
               content,
               count=1
           )
