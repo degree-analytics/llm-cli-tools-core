@@ -1,11 +1,35 @@
+---
+purpose:
+  "Define mandatory GT-based deployment rules for code and infrastructure
+  changes."
+audience: "Developers, release managers"
+owner: "Core AI Tools"
+review: "Quarterly (Jan, Apr, Jul, Oct)"
+status: "Active"
+---
+
 # 📦 DEPLOYMENT WORKFLOW RULES
 
 **CRITICAL**: Different types of changes follow different deployment paths:
 
-## Code Changes (apps/, scripts/, packages/):
+## When to Use This
+
+- Plan or review any deployment for Spacewalker, Mímir, or shared libraries that
+  rely on GT workflows.
+- Audit release readiness before approving production merges.
+
+## Prerequisites
+
+- `gt` CLI installed and authenticated.
+- Access to required AWS or infrastructure credentials when executing deployment
+  commands.
+
+## Code Changes (apps/, scripts/, packages/)
+
 1. **ALWAYS use GT workflow** → Create branch → PR to dev → Test → PR to main
 2. **NEVER deploy code directly** to production without PR review
 3. **Workflow**:
+
    ```bash
    gt create --all -m "fix: description"  # Create branch
    gt submit                              # Create PR to dev
@@ -15,9 +39,10 @@
    gt submit                              # Create PR to main
    ```
 
-## Infrastructure Changes (sam/, CloudFormation):
+## Infrastructure Changes (sam/, CloudFormation)
+
 1. **Dev environment**: Can use `just aws_deploy_* dev` directly
-2. **Prod environment**: 
+2. **Prod environment**:
    - If changing running services → Follow code workflow (PR first)
    - If only infrastructure → Can deploy directly with approval
 3. **Examples**:
@@ -26,13 +51,23 @@
    - Changing health checks → PR workflow (affects service behavior)
 
 ## GT ESSENTIALS (Minimal Reminders)
+
 **Core Rule**: Use `gt` for branches, never `git`
+
 - Before ANY operation: `git status && gt log --stack`
 
 ## 🚨 CRITICAL GT RESTACK RULES
+
 **NEVER use rebase during gt restack operations!**
+
 - When `gt restack` shows merge conflicts → Use merge resolution, NOT rebase
 - FORBIDDEN: `git rebase` during any GT workflow
 - REQUIRED: Let GT handle the merge strategy
 - If tempted to rebase → STOP and ask user for guidance
 - Rebase breaks GT's internal tracking and causes cascading conflicts
+
+## Verification
+
+- Capture `gt status` and `gt log --stack` output before and after the
+  deployment sequence to confirm history integrity.
+- Ensure both dev and main PRs show successful CI runs prior to merging.

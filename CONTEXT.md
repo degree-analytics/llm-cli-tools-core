@@ -1,8 +1,32 @@
+---
+purpose:
+  "Capture product context, problem framing, and solution scope for
+  llm-cli-tools-core."
+audience: "Contributors, stakeholders, partner teams"
+owner: "Core AI Tools"
+review: "Quarterly (Jan, Apr, Jul, Oct)"
+status: "Active"
+---
+
 # llm-cli-tools-core - Full Project Context
+
+## When to Use This
+
+- Onboard new collaborators who need the background behind llm-cli-tools-core.
+- Explain strategic decisions to leadership or partner teams.
+
+## Prerequisites
+
+- Familiarity with the downstream repositories (Spacewalker, Mímir) that adopt
+  the library.
+- Access to telemetry metrics or issue tracker history when validating
+  assumptions.
 
 ## 🎯 The Problem We're Solving
 
-We have multiple AI-powered CLI tools across different repositories (spacewalker, mimir, and more coming) that all need the same core functionality:
+We have multiple AI-powered CLI tools across different repositories
+(spacewalker, mimir, and more coming) that all need the same core functionality:
+
 - Telemetry tracking for AI operations
 - Token counting from different providers (OpenRouter, Anthropic, OpenAI)
 - Cost tracking and metrics
@@ -10,10 +34,12 @@ We have multiple AI-powered CLI tools across different repositories (spacewalker
 - Prometheus/Grafana integration
 
 Currently, we have **identical copies** of `ai_telemetry.py` in:
+
 - `/Users/chadwalters/source/work/spacewalker/scripts/helpers/ai_telemetry.py`
 - `/Users/chadwalters/source/work/mimir/src/mimir/core/ai_telemetry.py`
 
 This duplication is problematic because:
+
 1. Bug fixes need to be applied in multiple places
 2. Enhancements aren't shared across projects
 3. Each project might diverge over time
@@ -22,6 +48,7 @@ This duplication is problematic because:
 ## 🚀 The Solution: llm-cli-tools-core
 
 A shared library that provides:
+
 1. **Unified telemetry** for all LLM operations
 2. **Configurable storage** - each project owns its data
 3. **Provider abstraction** - support for OpenRouter, Anthropic, OpenAI, etc.
@@ -30,7 +57,8 @@ A shared library that provides:
 ## 📊 What We Built Today
 
 ### Repository Structure
-```
+
+```text
 llm-cli-tools-core/
 ├── src/llm_cli_core/
 │   ├── telemetry/core.py     # The ai_telemetry.py code (copied, not refactored)
@@ -53,7 +81,8 @@ llm-cli-tools-core/
 
 2. **GitHub as Package Registry**
    - No PyPI account needed
-   - Install via: `uv pip install "llm-cli-tools-core @ git+https://github.com/spacecargo/llm-cli-tools-core@v0.1.0"`
+   - Install via:
+     `uv pip install "llm-cli-tools-core @ git+https://github.com/spacecargo/llm-cli-tools-core@v0.1.0"`
    - Automatic versioning based on commit messages
 
 3. **Per-Project Storage**
@@ -68,6 +97,7 @@ llm-cli-tools-core/
 ## 🎯 Current State
 
 ### What Works ✅
+
 - Package structure is created and valid
 - Telemetry code is copied and imports work
 - Can be installed via git: `uv pip install -e ~/source/work/llm-cli-tools-core`
@@ -78,12 +108,15 @@ llm-cli-tools-core/
 ### What Needs Completion 🔧
 
 #### 1. **Fix Failing Tests** (Priority: HIGH)
+
 - 3 tests fail due to mock path issues
 - The `requests` module is imported inside functions, not at module level
 - Need to fix mock patches to use the correct import path
 
 #### 2. **Refactor Monolithic File** (Priority: MEDIUM)
+
 Currently `telemetry/core.py` has everything. Should be split:
+
 ```python
 # telemetry/extractors.py
 class OpenRouterTokens: ...
@@ -99,6 +132,7 @@ def track_ai_call(): ...
 ```
 
 #### 3. **Implement Storage Layer** (Priority: HIGH)
+
 ```python
 # storage/local.py
 class LocalStorage:
@@ -111,6 +145,7 @@ class StorageBackend(ABC): ...
 ```
 
 #### 4. **Add Configuration System** (Priority: HIGH)
+
 ```python
 # config/settings.py
 class Config:
@@ -122,9 +157,17 @@ class Config:
 ```
 
 #### 5. **Integration Testing** (Priority: MEDIUM)
+
 - Test with real projects (spacewalker, mimir)
 - Ensure backward compatibility
 - Verify storage isolation
+
+## Verification
+
+- Confirm this document reflects the latest architecture decisions during the
+  scheduled quarterly review.
+- Cross-check downstream repositories (Spacewalker, Mímir) after major releases
+  to ensure assumptions remain accurate.
 
 ## 🎯 Success Criteria
 
@@ -146,6 +189,7 @@ After the initial release, we want to add:
    - Pattern recognition
 
 2. **Provider Wrappers**
+
    ```python
    from llm_cli_core.providers import AnthropicProvider
 
@@ -180,7 +224,8 @@ After the initial release, we want to add:
 
 When you read this, consider:
 
-1. **Storage Format**: Should we use JSON, SQLite, or something else for local storage?
+1. **Storage Format**: Should we use JSON, SQLite, or something else for local
+   storage?
 2. **Naming**: Is `llm-cli-tools-core` the best name, or should it be simpler?
 3. **Scope**: Should v0.1.0 include storage, or just fix the telemetry?
 4. **Testing**: What level of test coverage is acceptable for v0.1.0?
@@ -197,21 +242,26 @@ When you read this, consider:
 ## 🎯 The Ask
 
 Please:
+
 1. Read this context and the CLAUDE.md file
 2. Ask any clarifying questions you have
 3. Fix the failing tests first (mock path issues)
 4. Then proceed with refactoring and enhancements
 5. Keep changes minimal for v0.1.0 - we can add features later
 
-The goal is a **working, installable package** that eliminates code duplication across our projects. Everything else can be added incrementally.
+The goal is a **working, installable package** that eliminates code duplication
+across our projects. Everything else can be added incrementally.
 
 ## 💡 Why This Matters
 
-We're building more AI tools all the time. Having a solid foundation for telemetry, storage, and configuration means:
+We're building more AI tools all the time. Having a solid foundation for
+telemetry, storage, and configuration means:
+
 - Consistent metrics across all tools
 - Better understanding of AI usage and costs
 - Ability to mine prompts and improve quality
 - Faster development of new tools
 - Single place to fix bugs and add features
 
-This is infrastructure that will pay dividends as we scale our AI tooling ecosystem.
+This is infrastructure that will pay dividends as we scale our AI tooling
+ecosystem.

@@ -1,0 +1,31 @@
+name: docs-quality
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "README.md"
+      - "CLAUDE.md"
+      - "CONTEXT.md"
+      - ".docs-templates/**"
+      - ".github/workflows/docs-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lint-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install just
+        run: sudo apt-get update && sudo apt-get install -y just
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install lychee
+        run: cargo install lychee --version 0.13.0
+      - uses: astral-sh/setup-uv@v3
+      - name: Run docs checks (markdownlint + cspell + lychee)
+        run: just docs check

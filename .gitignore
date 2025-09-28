@@ -58,3 +58,5 @@ Thumbs.db
 
 # Documentation build
 docs/_build/
+docs/_build/.lycheecache
+.lycheecache
