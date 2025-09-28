@@ -75,6 +75,15 @@ gt submit                                       # Open PR with CI hooks
 - [ ] Commit messages follow Conventional Commits. Include `BREAKING CHANGE:`
   when required.
 
+## 🔄 Release Automation
+
+- The `.github/workflows/release.yml` job runs after `CI` succeeds on `main`.
+- Commits on `main` whose message starts with `feat:` or `fix:` or
+  contains `BREAKING` set the release flag.
+- The action bumps `pyproject.toml` and `src/llm_cli_core/__version__.py`,
+  commits `chore: bump version to x.y.z`, and tags `vX.Y.Z`.
+- Use GT to land those commits; avoid manual tagging unless the automation fails.
+
 ## 🤖 Automation & Slash Commands
 
 - Slash commands live in `.claude/commands/`. Open the command file, execute the

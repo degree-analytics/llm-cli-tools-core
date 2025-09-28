@@ -313,9 +313,9 @@ gt modify -m "feat: integrate storage with AITelemetryTracker"
 gt modify -m "feat: add CLI query tools"
 gt submit
 
-# After PR approval, create release
-git tag v0.2.0
-git push origin v0.2.0
+# After PR approval, land a commit on main with a `feat:`/`fix:` prefix (or `BREAKING`)
+# CI success will trigger the Release workflow to bump versions and tag automatically.
+# Monitor GitHub Actions for completion.
 ```
 
 ## Success Criteria

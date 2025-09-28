@@ -111,9 +111,12 @@ llm-cli-tools-core/
 ## 📦 Distribution & Versioning
 
 - Releases are cut from `main` via GT-managed PRs.
-- Conventional commits drive version bumps: `feat:` (minor), `fix:` (patch),
-  `BREAKING CHANGE` (major).
-- Never edit `pyproject.toml` version fields manually; rely on automation.
+- The `Release` GitHub Action auto-bumps `pyproject.toml` and tags when the
+  latest commit on `main` passes CI *and* its message starts with `feat:`/`fix:`
+  or includes `BREAKING`.
+- Conventional commits still drive the bump level: `feat:` (minor), `fix:`
+  (patch), and messages with `BREAKING` trigger a major bump.
+- Never edit `pyproject.toml` version fields manually; rely on the automation.
 
 ## 💾 Storage & Configuration
 

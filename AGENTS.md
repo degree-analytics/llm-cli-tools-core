@@ -17,6 +17,9 @@ source of workflow rules.
   consistent.
 - **Conventional commits/PRs**: use `feat:`, `fix:`, `chore:`, etc., and include
   Summary/Testing sections in PR bodies.
+- **Release automation**: commits merged into `main` with `feat:`/`fix:` prefixes
+  or `BREAKING` in the message trigger the `Release` workflow to bump versions
+  and tag automatically.
 
 ## Slash Commands & Automation
 - Slash commands map to `.claude/commands/*.md`. Open the command file, execute
