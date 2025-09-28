@@ -1,3 +1,7 @@
-"""Storage module for LLM CLI tools"""
+"""Storage backends."""
 
-# Storage implementations will be added here
+from .base import StorageBackend, TelemetryRecord
+from .local import LocalStorage
+
+__all__ = ["StorageBackend", "TelemetryRecord", "LocalStorage"]
+

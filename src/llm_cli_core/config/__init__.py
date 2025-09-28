@@ -1,3 +1,6 @@
-"""Configuration module for LLM CLI tools"""
+"""Configuration helpers for llm-cli-tools-core."""
 
-# Configuration classes will be added here
+from .settings import Config, get_config, reset_config_cache
+
+__all__ = ["Config", "get_config", "reset_config_cache"]
+

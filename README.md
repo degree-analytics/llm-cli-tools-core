@@ -9,17 +9,18 @@ Core telemetry and utilities for LLM CLI tools. Provides unified telemetry track
 - 💾 **Configurable Storage** - Each project owns its telemetry data
 - 📈 **Prometheus Integration** - Push metrics to monitoring stack
 - 🔄 **Session Tracking** - Automatic session correlation
-- ⚡ **Zero Dependencies** - Minimal core dependencies
+- 💰 **Cost Analytics CLI** - Summarize spend with `llm-telemetry costs`
+- ⚡ **Lightweight Footprint** - Minimal runtime dependencies
 
 ## Installation
 
 ### From GitHub Release (Recommended)
 ```bash
 # Install specific version
-uv pip install "llm-cli-tools-core @ git+https://github.com/spacecargo/llm-cli-tools-core@v0.1.0"
+uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.0"
 
 # Install latest from main branch
-uv pip install "llm-cli-tools-core @ git+https://github.com/spacecargo/llm-cli-tools-core@main"
+uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@main"
 ```
 
 ### For Development
@@ -83,14 +84,17 @@ Configure via `.env` file in your project root:
 
 ```bash
 # Storage Configuration
-LLM_TELEMETRY_DIR=.llm-telemetry        # Where to store telemetry data
-LLM_TELEMETRY_ENABLED=true              # Enable/disable telemetry
-LLM_PROMPT_STORAGE=true                 # Store prompts for analysis
-LLM_RESPONSE_STORAGE=true               # Store responses for analysis
+LLM_TELEMETRY_ENABLED=true                 # Enable/disable telemetry entirely
+LLM_TELEMETRY_STORAGE_ENABLED=true         # Toggle local storage writes
+LLM_TELEMETRY_DIR=.llm-telemetry           # Where to store telemetry JSONL files
+LLM_PROJECT_NAME=spacewalker               # Optional explicit project label
+
+# Optional payload storage
+LLM_STORE_PROMPTS=false                    # Persist full prompts (default: off)
+LLM_STORE_RESPONSES=false                  # Persist full responses (default: off)
 
 # Metrics Backend
-LLM_METRICS_BACKEND=local               # local, pushgateway, or both
-LLM_PUSHGATEWAY_URL=http://localhost:9101  # Prometheus pushgateway URL
+LLM_PUSHGATEWAY_URL=http://localhost:7101  # Prometheus pushgateway URL
 
 # Session Detection (auto-detected in Claude Code)
 CLAUDE_SESSION_ID=                      # Optional: Override session ID
@@ -126,23 +130,67 @@ just test unit      # Run unit tests only
 just test integration  # Run integration tests
 ```
 
+## Telemetry Storage
+
+Telemetry is stored as newline-delimited JSON in the configured directory (default: `.llm-telemetry/`).
+
+```
+.llm-telemetry/
+├── 2025-01-27/
+│   └── telemetry.jsonl       # One record per AI call
+├── 2025-01-28/
+│   └── telemetry.jsonl
+└── summary.json              # Rolling totals (cost, tokens, per-agent/model)
+```
+
+Prompts/responses are written to `prompts.jsonl` and `responses.jsonl` only when explicitly enabled via `LLM_STORE_PROMPTS` / `LLM_STORE_RESPONSES`.
+
+## CLI Analytics
+
+A first analytics command ships in v0.2.0:
+
+```bash
+# Human-friendly table (last 30 days by default)
+llm-telemetry costs
+
+# JSON output for scripts / dashboards
+llm-telemetry costs --json
+
+# Filter by project, agent, status, or model
+llm-telemetry costs --project spacewalker --agent doc-finder --status success --days 7
+```
+
+Output includes total cost, total tokens, and breakdowns by model and agent. Pricing data is cached locally and refreshed automatically (at most once every 7 days).
+
+## GitHub Automation
+
+This repository ships the same Claude and Codex review automation used in our other projects:
+
+- `.github/workflows/claude.yml` – trigger with `@claude` or `/claude` comments to request targeted AI reviews (docs, correctness, overengineering, justfile). Requires Anthropic API credentials (`ANTHROPIC_API_KEY`, optional secrets described in the workflow) and supports manual `workflow_dispatch` runs.
+- `.github/workflows/codex-review.yml` – trigger with `@codex` or `/codex` comments for GPT-based reviews. Requires `OPENAI_API_KEY` and posts sticky summaries plus inline comments.
+
+Both workflows rely on repository/organization variables (e.g. `CLAUDE_MAX_TURNS`) and secrets mirroring the Spacewalker setup. Copy those values into this repo before enabling the automations.
+
+For day-to-day usage tips and GT/Claude best practices, see:
+
+- `docs/claude-components/deployment-gt-workflow.md` – required GT branching workflow
+- `docs/development/claude-commands.md` – available slash commands (including Ground Truth)
+- `docs/workflows/claude-review-workflows.md` – how multi-focus reviews operate
+
 ## Architecture
 
 ```
 llm-cli-tools-core/
-├── telemetry/          # Core telemetry tracking
-│   ├── core.py        # AITelemetryTracker, track_ai_call
-│   ├── extractors.py  # Token extractors for different providers
-│   └── session.py     # Session management
-├── storage/            # Data storage backends
-│   ├── local.py       # Local file storage
-│   └── remote.py      # Remote storage options
-├── providers/          # LLM provider wrappers
-│   ├── anthropic.py   # Anthropic integration
-│   ├── openrouter.py  # OpenRouter integration
-│   └── openai.py      # OpenAI integration
-└── config/             # Configuration management
-    └── settings.py    # .env configuration loading
+├── analytics/              # Aggregations used by the CLI
+│   └── costs.py
+├── cli.py                  # `llm-telemetry` entry point
+├── config/settings.py      # Environment / .env configuration
+├── models/pricing.py       # Pricing cache + estimation helpers
+├── storage/
+│   ├── base.py             # Storage interface + record dataclass
+│   ├── local.py            # JSONL storage backend
+│   └── readers.py          # Iterators for analytics
+└── telemetry/core.py       # Tracker, context manager, and extractors
 ```
 
 ## Contributing
