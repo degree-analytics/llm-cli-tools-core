@@ -1,7 +1,11 @@
-# 🎯 HANDOFF: Implement Local Telemetry Storage v0.2.0
+# 🎯 HANDOFF: Implement v0.2.0 - Storage + Client Abstractions
 
 ## Your Mission
-Add local file-based storage to llm-cli-tools-core so telemetry data is saved to disk for later analysis. Currently, telemetry only goes to Prometheus. We want to ALSO store it locally.
+Transform llm-cli-tools-core from just telemetry tracking into a complete LLM toolkit:
+1. **Add local storage** - Save telemetry to disk for analysis
+2. **Create client abstractions** - Unified interface for all LLM providers
+3. **Build model registry** - Centralized model configurations
+4. **Extract common utilities** - Token estimation, retry logic, etc.
 
 ## Current State (v0.1.0)
 - ✅ Telemetry tracking works (AITelemetryTracker class)
@@ -100,7 +104,79 @@ def send_metrics(self):
         storage.store_telemetry(telemetry_data)
 ```
 
-### 3. Create CLI Query Tool
+### 3. Create LLM Client Abstractions
+**File**: `src/llm_cli_core/clients/base.py`
+```python
+from abc import ABC, abstractmethod
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
+
+@dataclass
+class LLMResponse:
+    content: str
+    model: str
+    tokens: Dict[str, int]
+    cost: float
+    cached: bool = False
+
+class BaseLLMClient(ABC):
+    @abstractmethod
+    def chat(self, prompt: str, system: Optional[str] = None, **kwargs) -> LLMResponse:
+        pass
+```
+
+**File**: `src/llm_cli_core/clients/anthropic_client.py`
+```python
+# Port existing AIClient from spacewalker/scripts/helpers/ai_client.py
+# Key features to preserve:
+# - Model selection (haiku, sonnet, opus)
+# - Prompt caching
+# - Token estimation
+# - Error handling
+```
+
+**File**: `src/llm_cli_core/clients/openrouter_client.py`
+```python
+# Port existing OpenRouterClient from spacewalker/scripts/doc-finder/
+# Key features to preserve:
+# - Model selection
+# - API key handling
+# - Response parsing
+```
+
+### 4. Create Model Registry
+**File**: `src/llm_cli_core/models/registry.py`
+```python
+# Port MODEL_CAPABILITIES and MODEL_PRICING from ai_client.py
+MODEL_REGISTRY = {
+    "claude-3-5-haiku-20241022": {
+        "provider": "anthropic",
+        "context_window": 200000,
+        "max_output": 8192,
+        "pricing": {"input": 0.25, "output": 1.25},
+        "capabilities": ["vision", "function_calling"],
+        "aliases": ["haiku", "claude-haiku"]
+    },
+    # ... more models
+}
+```
+
+### 5. Extract Common Utilities
+**File**: `src/llm_cli_core/utils/tokens.py`
+```python
+def estimate_tokens(text: str, model: str = None) -> int:
+    """Port _estimate_tokens from ai_client.py"""
+    # Rough estimation: ~4 characters per token
+    return len(text) // 4
+```
+
+**File**: `src/llm_cli_core/utils/retry.py`
+```python
+# Generic retry logic with exponential backoff
+# Extract from various retry implementations
+```
+
+### 6. Create CLI Query Tool
 **File**: `src/llm_cli_core/cli.py`
 ```python
 #!/usr/bin/env python3
@@ -162,30 +238,40 @@ def test_query_by_date_range():
 
 ## Implementation Steps
 
-1. **Start with storage module**
-   - Create the LocalStorage class
-   - Implement JSONL writing with proper locking
-   - Test with simple script
+### Week 1: Foundation
+1. **Storage Module** (Day 1)
+   - Create LocalStorage class with JSONL backend
+   - Implement thread-safe writes
+   - Add retention and cleanup logic
 
-2. **Integrate with tracker**
-   - Modify AITelemetryTracker.send_metrics()
-   - Add new record_prompt() and record_response() methods
-   - Test with existing tools
+2. **Client Abstractions** (Day 2)
+   - Create BaseLLMClient interface
+   - Port AnthropicClient from ai_client.py
+   - Port OpenRouterClient from doc-finder
+   - Implement client factory with auto-detection
 
-3. **Add CLI tools**
-   - Basic stats command first
-   - Cost analysis second
-   - Make it installable via pyproject.toml entry point
+3. **Model Registry** (Day 3)
+   - Port MODEL_CAPABILITIES from ai_client.py
+   - Create comprehensive model database
+   - Add model selection logic
 
-4. **Test thoroughly**
-   - Unit tests for storage operations
-   - Integration test with real AI calls
-   - Performance test (should add <10ms overhead)
+### Week 2: Integration
+4. **Common Utilities** (Day 4)
+   - Extract token estimation logic
+   - Create retry decorator
+   - Implement prompt caching utilities
 
-5. **Update documentation**
-   - Update README with storage features
-   - Add examples of querying data
-   - Document privacy considerations
+5. **Integration & Testing** (Day 5)
+   - Update telemetry to use new storage
+   - Integrate clients with telemetry
+   - Write comprehensive tests
+   - Update documentation
+
+6. **CLI & Polish** (Day 6)
+   - Create CLI query tools
+   - Test with real projects
+   - Performance optimization
+   - Release preparation
 
 ## Testing Plan
 
@@ -234,14 +320,34 @@ git push origin v0.2.0
 
 ## Success Criteria
 
-- [ ] Storage writes telemetry to `.llm-telemetry/YYYY-MM-DD/telemetry.jsonl`
-- [ ] Old data (>30 days) is automatically cleaned up
+### Storage
+- [ ] Telemetry saved to `.llm-telemetry/YYYY-MM-DD/telemetry.jsonl`
+- [ ] Old data (>30 days) automatically cleaned up
 - [ ] Storage adds <10ms overhead to AI calls
 - [ ] Thread-safe for concurrent writes
+
+### Client Abstractions
+- [ ] Unified interface for Anthropic, OpenRouter, OpenAI
+- [ ] Auto-detects available API keys
+- [ ] Telemetry automatically tracked for all calls
+- [ ] Existing ai_client.py can be replaced with new client
+- [ ] Existing OpenRouterClient can be replaced
+
+### Model Registry
+- [ ] All models from ai_client.py migrated
+- [ ] Model selection by alias works ("haiku" → "claude-3-5-haiku")
+- [ ] Accurate pricing and capabilities
+
+### CLI & Testing
 - [ ] CLI can query costs and usage stats
-- [ ] All existing tests still pass
-- [ ] New storage tests pass
-- [ ] Works in both spacewalker and mimir without changes
+- [ ] All existing v0.1.0 tests still pass
+- [ ] New tests for storage, clients, registry
+- [ ] Works in spacewalker, mimir, and new projects
+
+### Migration
+- [ ] Drop-in replacement for existing AI clients
+- [ ] No breaking changes to telemetry
+- [ ] Clear migration guide in documentation
 
 ## Questions/Decisions
 
@@ -252,11 +358,14 @@ git push origin v0.2.0
 
 ## Time Estimate
 
-- Storage module: 2-3 hours
-- Integration: 1 hour
-- CLI tools: 2 hours
-- Tests: 2 hours
-- **Total: ~8 hours**
+- Storage module: 3-4 hours
+- Client abstractions: 4-5 hours
+- Model registry: 2-3 hours
+- Common utilities: 2-3 hours
+- Integration: 2-3 hours
+- CLI tools: 2-3 hours
+- Tests & docs: 3-4 hours
+- **Total: 2-3 days** (or 1 week part-time)
 
 ---
 

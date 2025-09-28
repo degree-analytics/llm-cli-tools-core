@@ -1,7 +1,10 @@
-# llm-cli-tools-core v0.2.0 - Local Telemetry Storage
+# llm-cli-tools-core v0.2.0 - Storage + Client Abstractions
 
-## 🎯 Goal
-Implement local file-based storage for AI telemetry data that can be mined later for insights, cost analysis, and performance optimization.
+## 🎯 Goals
+1. **Local Telemetry Storage** - Save telemetry to disk for later analysis
+2. **LLM Client Abstractions** - Unified interface for Anthropic, OpenRouter, OpenAI
+3. **Model Registry** - Centralized model configurations and capabilities
+4. **Common Utilities** - Token estimation, retry logic, cost calculation
 
 ## 📋 Requirements
 
@@ -61,6 +64,150 @@ Each AI call should save:
 └── summary.json                   # Rolling summary stats
 ```
 
+## 🤖 LLM Client Abstractions
+
+### Base Client Interface
+```python
+# llm_cli_core/clients/base.py
+class BaseLLMClient:
+    """Abstract base class for all LLM providers"""
+
+    def chat(self, prompt: str, system: str = None, **kwargs) -> LLMResponse:
+        """Send chat request to LLM"""
+
+    def stream(self, prompt: str, system: str = None, **kwargs):
+        """Stream responses from LLM"""
+
+    def estimate_tokens(self, text: str) -> int:
+        """Estimate token count for text"""
+
+    def calculate_cost(self, tokens: TokenData) -> float:
+        """Calculate cost based on token usage"""
+```
+
+### Provider Implementations
+```python
+# llm_cli_core/clients/anthropic_client.py
+class AnthropicClient(BaseLLMClient):
+    """Anthropic Claude API client"""
+    def __init__(self, api_key: str = None, model: str = "claude-3-5-haiku"):
+        # Support for Claude 3.5 Haiku, Sonnet 4, Opus 4
+
+# llm_cli_core/clients/openrouter_client.py
+class OpenRouterClient(BaseLLMClient):
+    """OpenRouter multi-model API client"""
+    def __init__(self, api_key: str = None, model: str = "meta-llama/llama-3.1-8b-instruct:free"):
+        # Support for 100+ models via OpenRouter
+
+# llm_cli_core/clients/openai_client.py
+class OpenAIClient(BaseLLMClient):
+    """OpenAI GPT API client"""
+    def __init__(self, api_key: str = None, model: str = "gpt-4-turbo"):
+        # Support for GPT-4, GPT-3.5, etc.
+```
+
+### Client Factory
+```python
+# llm_cli_core/clients/__init__.py
+def get_client(provider: str = "auto", model: str = None) -> BaseLLMClient:
+    """
+    Get appropriate client based on available API keys
+
+    Priority order:
+    1. Explicit provider requested
+    2. ANTHROPIC_API_KEY → AnthropicClient
+    3. OPENROUTER_API_KEY → OpenRouterClient
+    4. OPENAI_API_KEY → OpenAIClient
+    """
+```
+
+## 📊 Model Registry
+
+### Model Configuration
+```python
+# llm_cli_core/models/registry.py
+MODEL_REGISTRY = {
+    # Anthropic Models
+    "claude-3-5-haiku": {
+        "provider": "anthropic",
+        "context_window": 200000,
+        "max_output": 8192,
+        "pricing": {"input": 0.25, "output": 1.25},  # per 1M tokens
+        "capabilities": ["vision", "function_calling"],
+        "recommended_for": ["simple_tasks", "high_volume"]
+    },
+    "claude-sonnet-4": {
+        "provider": "anthropic",
+        "context_window": 200000,
+        "max_output": 8192,
+        "pricing": {"input": 3.0, "output": 15.0},
+        "capabilities": ["vision", "function_calling", "reasoning"],
+        "recommended_for": ["complex_analysis", "code_generation"]
+    },
+
+    # OpenRouter Models
+    "llama-3.1-70b": {
+        "provider": "openrouter",
+        "context_window": 131072,
+        "max_output": 4096,
+        "pricing": {"input": 0.59, "output": 0.79},
+        "capabilities": ["reasoning"],
+        "recommended_for": ["open_source", "cost_effective"]
+    },
+
+    # ... more models
+}
+
+def select_model(requirements: Dict) -> str:
+    """
+    Auto-select best model based on requirements:
+    - budget_per_call: Maximum cost willing to pay
+    - min_context: Minimum context window needed
+    - capabilities: Required capabilities (vision, etc)
+    - speed_priority: Prefer faster models
+    """
+```
+
+## 🔧 Common Utilities
+
+### Token Estimation
+```python
+# llm_cli_core/utils/tokens.py
+def estimate_tokens(text: str, model: str = None) -> int:
+    """
+    Estimate token count for text
+    Uses tiktoken for OpenAI, claude-tokenizer for Anthropic
+    Falls back to character-based estimation
+    """
+
+def truncate_to_tokens(text: str, max_tokens: int, model: str = None) -> str:
+    """Truncate text to fit within token limit"""
+```
+
+### Retry Logic
+```python
+# llm_cli_core/utils/retry.py
+def retry_with_backoff(
+    func: Callable,
+    max_retries: int = 3,
+    backoff_factor: float = 2.0,
+    exceptions: Tuple = (APIError, RateLimitError)
+):
+    """Generic retry decorator with exponential backoff"""
+```
+
+### Prompt Caching
+```python
+# llm_cli_core/utils/cache.py
+class PromptCache:
+    """
+    Cache prompts for Anthropic beta caching
+    Reduces cost for repeated system prompts
+    """
+    def get_cached_messages(self, messages: List[Dict]) -> List[Dict]:
+        """Add cache_control to eligible messages"""
+```
+
 ## 🔧 Implementation Plan
 
 ### Phase 1: Core Storage (MVP)
@@ -80,9 +227,23 @@ class LocalStorage:
         """Query telemetry by date range"""
 ```
 
-### Phase 2: Integration
+### Phase 2: LLM Clients
 ```python
-# Modify llm_cli_core/telemetry/core.py
+# Implement base client and provider clients
+# Move existing AIClient and OpenRouterClient logic here
+# Add proper error handling and retry logic
+```
+
+### Phase 3: Model Registry
+```python
+# Create comprehensive model registry
+# Import MODEL_CAPABILITIES and MODEL_PRICING from existing code
+# Add model selection logic
+```
+
+### Phase 4: Integration
+```python
+# Update telemetry to use new clients
 class AITelemetryTracker:
     def send_metrics(self):
         # Existing Prometheus code...
@@ -93,7 +254,7 @@ class AITelemetryTracker:
             storage.store_telemetry(self.to_dict())
 ```
 
-### Phase 3: Query Tools
+### Phase 5: Query Tools
 ```python
 # llm_cli_core/cli.py - New CLI for querying
 """
@@ -121,19 +282,41 @@ LLM_STORAGE_MAX_SIZE_MB=100          # Max storage size in MB (default: 100)
 ## 🚀 Migration Path
 
 ### For existing users (v0.1.0 → v0.2.0)
-1. **No breaking changes** - Prometheus metrics continue to work
-2. **Storage is opt-in** - Set `LLM_TELEMETRY_STORAGE=false` to disable
-3. **Automatic** - Just upgrade and storage starts working
+1. **No breaking changes** - Telemetry continues to work
+2. **Storage is automatic** - Set `LLM_TELEMETRY_STORAGE=false` to disable
+3. **New client abstractions** - Gradually migrate from direct client usage
 
-### Example upgrade:
+### Migration Examples
+
+#### Before (Direct Client Usage)
+```python
+# Old way in ai_client.py
+import anthropic
+client = anthropic.Client()
+response = client.messages.create(...)
+```
+
+#### After (Unified Interface)
+```python
+# New way with llm-cli-tools-core
+from llm_cli_core import get_client
+
+client = get_client()  # Auto-detects available API keys
+response = client.chat("Generate a commit message", system="You are a git expert")
+# Telemetry automatically tracked!
+```
+
+#### Storage Integration
 ```bash
 # In spacewalker or mimir
-pip install --upgrade git+https://github.com/chadwalters/llm-cli-tools-core.git@v0.2.0
+pip install --upgrade git+https://github.com/degree-analytics/llm-cli-tools-core.git@v0.2.0
 
-# Add to .env if you want custom location
+# Configure storage location (optional)
 echo "LLM_TELEMETRY_DIR=.metrics/ai" >> .env
 
-# That's it! Storage starts automatically
+# Use new client (auto-tracks telemetry with storage)
+from llm_cli_core import get_client
+client = get_client(model="claude-3-5-haiku")
 ```
 
 ## 📊 Use Cases
@@ -176,11 +359,25 @@ $ llm-telemetry patterns
 
 ## ✅ Success Criteria
 
+### Storage
 1. **Zero config works** - Storage enabled by default with sensible defaults
 2. **No performance impact** - Async/thread-safe writes don't block AI calls
 3. **Easy to query** - Simple CLI tools to analyze stored data
 4. **Bounded growth** - Automatic cleanup of old data
 5. **Privacy-aware** - Prompts/responses optional and off by default
+
+### Client Abstractions
+1. **Provider agnostic** - Same interface for Anthropic, OpenRouter, OpenAI
+2. **Auto-detection** - Finds available API keys automatically
+3. **Integrated telemetry** - All calls tracked automatically
+4. **Error handling** - Consistent retry logic and error messages
+5. **Model flexibility** - Easy to switch models or providers
+
+### Model Registry
+1. **Comprehensive** - All major models documented
+2. **Auto-selection** - Choose best model for requirements
+3. **Cost tracking** - Accurate pricing for all models
+4. **Capability matching** - Find models with needed features
 
 ## 🚫 What NOT to Include (Yet)
 
@@ -188,15 +385,20 @@ $ llm-telemetry patterns
 - ❌ Cloud storage (S3, GCS) - Local only for now
 - ❌ Real-time dashboards - Just CLI queries for now
 - ❌ Multi-project aggregation - Each project stores its own data
-- ❌ Encryption - Rely on filesystem permissions
+- ❌ Streaming responses - Focus on complete responses first
+- ❌ Fine-tuned models - Just base models for now
+- ❌ Multi-modal beyond text - Text focus (vision later)
 
 ## 📅 Timeline Estimate
 
-- **Core storage implementation**: 2-3 hours
-- **Integration with existing tracker**: 1 hour
+- **Core storage implementation**: 3-4 hours
+- **LLM client abstractions**: 4-5 hours
+- **Model registry**: 2-3 hours
+- **Common utilities**: 2-3 hours
+- **Integration & migration**: 2-3 hours
 - **CLI query tools**: 2-3 hours
-- **Tests and documentation**: 2 hours
-- **Total**: ~1 day of focused work
+- **Tests and documentation**: 3-4 hours
+- **Total**: ~2-3 days of focused work
 
 ## 🎯 Next Steps After v0.2.0
 
