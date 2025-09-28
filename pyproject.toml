@@ -8,7 +8,12 @@ dependencies = [
     "httpx>=0.24.0",
     "python-dotenv>=1.0.0",
     "requests>=2.31.0",
+    "filelock>=3.12.0",
+    "rich>=13.7.0",
 ]
+
+[project.scripts]
+llm-telemetry = "llm_cli_core.cli:main"
 
 [project.optional-dependencies]
 dev = [

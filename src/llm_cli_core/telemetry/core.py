@@ -28,9 +28,15 @@ Usage:
 import os
 import time
 import logging
-from typing import Dict, Any, Union, NamedTuple
+import subprocess
+import hashlib
+from datetime import datetime, timezone
+from typing import Dict, Any, Optional, Union, NamedTuple
 from dataclasses import dataclass
 from contextlib import contextmanager
+
+from llm_cli_core.config import get_config
+from llm_cli_core.storage import LocalStorage, TelemetryRecord
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -62,8 +68,6 @@ class SessionInfo:
 
         # Fallback: generate pseudo-session from environment
         if not session_id:
-            import hashlib
-
             env_data = (
                 f"{user_id}-{os.getcwd()}-{time.time()//3600}"  # Hour-based sessions
             )
@@ -130,6 +134,14 @@ class AITelemetryTracker:
         self.model = "unknown"
         self.success = True
         self.session_info = SessionInfo.detect()
+        self.config = get_config()
+        self.storage = (
+            LocalStorage(self.config) if self.config.storage_enabled else None
+        )
+        self.prompt_text: Optional[str] = None
+        self.response_text: Optional[str] = None
+        self.metadata: Dict[str, Any] = {}
+        self.error_message: Optional[str] = None
 
     def start(self):
         """Start timing the operation"""
@@ -149,6 +161,22 @@ class AITelemetryTracker:
         """Record AI model used"""
         self.model = model
 
+    def record_prompt(self, prompt: str):
+        """Record prompt text for optional storage and hashing."""
+        self.prompt_text = prompt
+
+    def record_response_text(self, response: str):
+        """Record response text for optional storage and hashing."""
+        self.response_text = response
+
+    def update_metadata(self, metadata: Dict[str, Any]):
+        """Merge additional metadata into the telemetry payload."""
+        self.metadata.update(metadata)
+
+    def record_error(self, error: str):
+        """Capture error message for telemetry persistence."""
+        self.error_message = error
+
     def record_response(
         self,
         token_extractor,
@@ -162,7 +190,7 @@ class AITelemetryTracker:
         self.record_model(model)
         self.success = success
 
-    def send_metrics(self, pushgateway_url: str = "http://localhost:7101") -> bool:
+    def send_metrics(self, pushgateway_url: Optional[str] = None) -> bool:
         """Send telemetry metrics to monitoring stack"""
         if self.start_time is None:
             logger.warning(
@@ -179,7 +207,8 @@ class AITelemetryTracker:
             session_id = self.session_info.session_id
             user_id = self.session_info.user_id
 
-            url = f"{pushgateway_url}/metrics/job/ai_agents/agent/{self.agent_name}/session_id/{session_id}/user_id/{user_id}/timestamp/{timestamp_id}"
+            url_base = pushgateway_url or self.config.pushgateway_url
+            url = f"{url_base}/metrics/job/ai_agents/agent/{self.agent_name}/session_id/{session_id}/user_id/{user_id}/timestamp/{timestamp_id}"
 
             # Enhanced metrics with user correlation (proper pushgateway format)
             metrics = f"""ai_agent_usage_total{{agent_name="{self.agent_name}",operation="{self.operation}",model="{self.model}",success="{self.success}",user="{user_id}"}} 1
@@ -203,11 +232,83 @@ ai_agent_sessions_total{{session_id="{session_id}",user="{user_id}",working_dire
             else:
                 logger.warning(f"Telemetry failed: HTTP {response.status_code}")
 
+            self._persist_telemetry(duration_ms)
             return success
 
         except Exception as e:
             logger.warning(f"Telemetry error: {e}")
+            self._persist_telemetry(duration_ms)
             return False
+
+    def _persist_telemetry(self, duration_ms: int) -> None:
+        if not self.storage:
+            return
+
+        timestamp = datetime.now(timezone.utc)
+        record = TelemetryRecord(
+            timestamp=timestamp,
+            agent_name=self.agent_name,
+            operation=self.operation,
+            model=self.model,
+            session_id=self.session_info.session_id,
+            user_id=self.session_info.user_id,
+            duration_ms=duration_ms,
+            total_tokens=int(self.tokens.total),
+            input_tokens=int(self.tokens.input),
+            output_tokens=int(self.tokens.output),
+            cost_usd=float(self.cost),
+            success=bool(self.success),
+            prompt_hash=self._hash_text(self.prompt_text),
+            response_hash=self._hash_text(self.response_text),
+            metadata=self._collect_metadata(),
+            prompt_text=self.prompt_text,
+            response_text=self.response_text,
+        )
+
+        try:
+            self.storage.record(record)
+        except Exception as exc:  # pragma: no cover - storage failures shouldn't crash callers
+            logger.warning(f"Failed to persist telemetry locally: {exc}")
+
+    def _collect_metadata(self) -> Dict[str, Any]:
+        metadata: Dict[str, Any] = {
+            "project": self.config.project_name,
+            "working_directory": self.session_info.working_directory,
+            "session_start": self.session_info.start_time,
+        }
+
+        branch = self._detect_git_branch()
+        if branch:
+            metadata["git_branch"] = branch
+
+        if self.error_message:
+            metadata["error"] = self.error_message
+
+        metadata.update(self.metadata)
+        return metadata
+
+    @staticmethod
+    def _hash_text(value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+        digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+        return f"sha256:{digest}"
+
+    @staticmethod
+    def _detect_git_branch() -> Optional[str]:
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            branch = result.stdout.strip()
+            if branch and branch != "HEAD":
+                return branch
+        except Exception:
+            return None
+        return None
 
 
 @contextmanager
@@ -225,8 +326,9 @@ def track_ai_call(agent_name: str, operation: str):
 
     try:
         yield tracker
-    except Exception:
+    except Exception as exc:
         tracker.success = False
+        tracker.record_error(str(exc))
         raise
     finally:
         tracker.send_metrics()
