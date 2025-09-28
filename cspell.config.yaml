@@ -21,6 +21,9 @@ words:
   - fastapi
   - Runbook
   - anthropics
+  - Quickstart
+  - Runbooks
+  - Frontmatter
   - MTOK
 flagWords: []
 ignorePaths:

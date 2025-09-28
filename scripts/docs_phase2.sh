@@ -10,6 +10,28 @@ set -euo pipefail
 : "${DOCS_CSPELL_CONFIG:=cspell.config.yaml}"
 : "${DOCS_LYCHEE_CONFIG:=lychee.toml}"
 
+# Resolve targets for cspell and lychee
+if [[ "$DOCS_CSPELL_FILES" == *"**"* ]]; then
+  cspell_targets=(README.md CLAUDE.md CONTEXT.md)
+  while IFS= read -r line; do
+    cspell_targets+=("$line")
+  done < <(find docs -name '*.md' -print | sort)
+  while IFS= read -r line; do
+    cspell_targets+=("$line")
+  done < <(find .docs-templates -name '*.md' -print | sort)
+else
+  read -r -a cspell_targets <<< "$DOCS_CSPELL_FILES"
+fi
+
+if [[ "$DOCS_LYCHEE_FILES" == *"**"* ]]; then
+  lychee_targets=(README.md CLAUDE.md CONTEXT.md)
+  while IFS= read -r line; do
+    lychee_targets+=("$line")
+  done < <(find docs -name '*.md' -print | sort)
+else
+  read -r -a lychee_targets <<< "$DOCS_LYCHEE_FILES"
+fi
+
 if ! command -v npx >/dev/null 2>&1; then
   echo "❌ npx not found. Install Node.js 18+ to run spell checking." >&2
   exit 1
@@ -52,7 +74,7 @@ CFG
 fi
 
 echo "🧡 Running cspell…"
-npx --yes cspell@7.2.0 lint --config "$DOCS_CSPELL_CONFIG" $DOCS_CSPELL_FILES
+npx --yes cspell@7.2.0 lint --config "$DOCS_CSPELL_CONFIG" "${cspell_targets[@]}"
 
 echo "🌐 Running lychee…"
 MIN_LYCHEE_VERSION=${DOCS_LYCHEE_VERSION:-0.13.0}
@@ -83,9 +105,9 @@ if ! version_lt "$installed" "$MAX_LYCHEE_VERSION"; then
 fi
 
 if [ -f "$DOCS_LYCHEE_CONFIG" ]; then
-  lychee --config "$DOCS_LYCHEE_CONFIG" $DOCS_LYCHEE_ARGS $DOCS_LYCHEE_FILES
+  lychee --config "$DOCS_LYCHEE_CONFIG" $DOCS_LYCHEE_ARGS "${lychee_targets[@]}"
 else
-  lychee $DOCS_LYCHEE_ARGS $DOCS_LYCHEE_FILES
+  lychee $DOCS_LYCHEE_ARGS "${lychee_targets[@]}"
 fi
 
 echo "✅ Phase 2 docs checks complete."

@@ -158,7 +158,7 @@ class Config:
 
 Install via:
 
-```
+```bash
 uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.0"
 ```
 
