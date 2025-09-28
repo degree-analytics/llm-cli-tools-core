@@ -30,7 +30,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 100
-target-version = "0.1.1"
+target-version = "py311"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

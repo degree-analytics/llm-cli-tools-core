@@ -85,7 +85,28 @@ jobs:
       - name: Update version files
         if: steps.check.outputs.should_release == 'true'
         run: |
-          sed -i "s/version = \".*\"/version = \"${{ steps.version.outputs.new_version }}\"/" pyproject.toml
+          # Update only the project version in pyproject.toml, not ruff target-version
+          uv run --python 3.12 python - <<'EOF'
+          import re
+          import os
+
+          new_version = os.environ.get("NEW_VERSION", "${{ steps.version.outputs.new_version }}")
+
+          with open("pyproject.toml", "r") as f:
+              content = f.read()
+
+          # Only update version in [project] section
+          content = re.sub(
+              r'(\[project\][^\[]*version = ")[^"]+(")',
+              rf'\1{new_version}\2',
+              content,
+              count=1
+          )
+
+          with open("pyproject.toml", "w") as f:
+              f.write(content)
+          EOF
+
           echo "__version__ = \"${{ steps.version.outputs.new_version }}\"" > src/llm_cli_core/__version__.py
 
           git config user.name "GitHub Actions"
