@@ -59,6 +59,7 @@ follow the templates in `.docs-templates/`.
 ### Workflow Runbooks
 
 - **Primary Docs:**
+  [docs/WORKFLOW.md](WORKFLOW.md),
   [docs/workflows/claude-review-workflows.md](workflows/claude-review-workflows.md)
 - **Status:** Active
 - **Notes:** GitHub and local automation guidance.

@@ -8,188 +8,144 @@ review: "Quarterly (Jan, Apr, Jul, Oct)"
 status: "Active"
 ---
 
-# llm-cli-tools-core - Claude Development Guide
+# llm-cli-tools-core - Repository Playbook for Claude & Codex
 
-## 🎯 CORE PRINCIPLES
+> Shared telemetry utilities for Degree Analytics agents. Use this guide for
+> workflow rules, tooling expectations, validation steps, and review readiness.
 
-1. **UV-first development** - All Python operations through UV
-2. **Justfile for everything** - Never run pytest, pip, or python directly
-3. **Storage is configurable** - Each project owns its data via .env
-4. **Test-driven development** - Write tests before implementation
-5. **Git-based distribution** - No PyPI, use GitHub releases
+## 🔑 Project Identity & Principles
 
-## When to Use This
+- **Justfile-first** - run `just setup`, `just lint`, `just test`, `just ci`,
+  and `just docs check` instead of calling `python`, `pytest`, or `uv` directly.
+- **GT workflow** - manage branches and PRs with `gt create|modify|submit`.
+  Never run `git push`, `git rebase`, or `git merge` manually.
+- **TDD mandatory** - propose tests, watch them fail, implement, and repeat
+  until the suite is green.
+- **Docs stay current** - update `docs/`, `README.md`, and `CONTEXT.md` whenever
+  behavior or workflows change.
+- **Config-driven storage** - respect `.env` directories and avoid hardcoded
+  paths.
+- **Git-based distribution** - releases come from git tags; never publish to
+  PyPI.
 
-- Start here before making any change or opening a PR in llm-cli-tools-core.
-- Reference during reviews to verify workflows, tooling, and testing
-  requirements.
-
-## Prerequisites
-
-- Local environment bootstrapped with `just setup`.
-- Access to required secrets for telemetry or GitHub releases when applicable.
-- Node 18+ available locally to run `just docs check` (uses
-  `npx markdownlint-cli2`).
-
-## 🔧 DEVELOPMENT WORKFLOW
-
-### Initial Setup
+## 🚀 Quick Commands
 
 ```bash
-just setup       # Creates UV environment and installs dependencies
-just test        # Verify everything works
+just setup            # Bootstrap UV virtual env and dependencies
+just lint check       # Ruff lint rules
+just lint format      # Auto-format and fix lint issues
+just test             # Full test suite (unit + integration)
+just test unit        # Unit tests only
+just ci               # Lint + tests (mirrors CI)
+just docs check       # Markdownlint + cspell + lychee
+
+gt log --stack        # Inspect stack state
+gt status             # Verify branch sync before and after work
 ```
 
-### Making Changes
+## 🧭 Recommended Workflow
 
-1. Create feature branch: `git checkout -b feat/your-feature`
-2. Write tests first (TDD approach)
-3. Implement feature
-4. Run `just ci` to verify everything passes (and `just docs check` if
-   documentation changed)
-5. Commit with conventional message format:
-   - `feat:` for new features (triggers minor version bump)
-   - `fix:` for bug fixes (triggers patch version bump)
-   - `chore:` for maintenance (no version bump)
-   - Include `BREAKING CHANGE:` for major version bumps
-
-### Testing
-
-```bash
-just test           # Run all tests
-just test unit      # Run unit tests only
-just test integration  # Run integration tests only
-```
-
-### Linting and Formatting
-
-```bash
-just lint check     # Check for lint issues
-just lint format    # Auto-format code
-```
-
-## 📦 PACKAGE STRUCTURE
-
-```text
-src/llm_cli_core/
-├── __init__.py           # Public API exports
-├── telemetry/            # Telemetry tracking
-│   ├── core.py          # Main telemetry logic
-│   ├── extractors.py    # Token extractors (future)
-│   └── session.py       # Session management (future)
-├── storage/              # Data storage backends
-├── providers/            # LLM provider wrappers
-└── config/               # Configuration management
-```
-
-## 🧪 TESTING REQUIREMENTS
-
-- **Unit tests** for all new functions
-- **Integration tests** for storage operations
-- **Mock external dependencies** (pushgateway, etc.)
-- **Minimum 80% coverage** target
-- **Use pytest fixtures** for common setup
-
-## Verification
-
-- Run `just ci` before requesting review to satisfy linting and test coverage
-  expectations.
-- Capture test output in PR descriptions for high-risk changes or failing
-  investigations.
-- `just docs check` now runs markdownlint, cspell, and lychee automatically via
-  `scripts/docs_phase2.sh`; keep Node + Rust toolchain (lychee) available.
-
-## 🚫 CRITICAL RULES
-
-1. **NEVER hardcode paths** - Use .env configuration
-2. **NEVER use pip directly** - Use `uv pip` if needed
-3. **NEVER commit uv.lock** changes without testing
-4. **NEVER manually change version** in pyproject.toml
-5. **ALWAYS use justfile commands** for operations
-
-## 📝 COMMIT MESSAGE CONVENTIONS
-
-```text
-feat: add new provider support
-fix: correct token counting logic
-chore: update dependencies
-docs: improve API documentation
-test: add integration tests
-refactor: split telemetry module
-
-BREAKING CHANGE: renamed main API function
-```
-
-## 🔄 VERSION MANAGEMENT
-
-Versions are automatically managed by GitHub Actions based on commit messages:
-
-- `feat:` → Minor bump (0.1.0 → 0.2.0)
-- `fix:` → Patch bump (0.1.0 → 0.1.1)
-- `BREAKING CHANGE:` → Major bump (0.1.0 → 1.0.0)
-
-## 💾 STORAGE PHILOSOPHY
-
-- Each project using this library owns its storage
-- Storage location is configurable via `.env`
-- Never assume storage paths
-- Create directories if they don't exist
-- Support multiple storage backends (local, remote)
-
-## 🔌 INTEGRATION PATTERN
-
-Projects using this library should:
-
-1. Add to dependencies:
-
-   ```text
-   llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.0
-   ```
-
-2. Configure via `.env`:
+1. **Sync branch with GT**
 
    ```bash
-   LLM_TELEMETRY_DIR=.llm-telemetry
-   LLM_TELEMETRY_ENABLED=true
+   gt create --all -m "feat: short summary"
    ```
 
-3. Import and use:
+2. **Install or refresh tooling via Justfile**. Run `just setup` on new
+   machines; the target invokes `uv sync` automatically.
+3. **Write tests first** under `tests/` to capture the desired behavior.
+4. **Implement the feature** in `src/llm_cli_core/` and keep code plus tests in
+   the same stack entry.
+5. **Validate locally**
 
-   ```python
-   from llm_cli_core import track_ai_call, OpenRouterTokens
-
-   with track_ai_call("my-agent", "operation") as tracker:
-       response = make_api_call()
-       tracker.record_tokens(OpenRouterTokens(response.json()))
+   ```bash
+   just lint check
+   just test
    ```
 
-## 🚀 FUTURE ENHANCEMENTS
+6. **Update docs** (`docs/`, `README.md`, `CONTEXT.md`, `docs/WORKFLOW.md`) for
+   any new workflows or APIs.
+7. **Submit via GT**
 
-Areas for expansion (not yet implemented):
+   ```bash
+   gt submit
+   ```
 
-- [ ] Local storage implementation
-- [ ] Config loading from .env
-- [ ] Provider wrappers (Anthropic, OpenAI)
-- [ ] Token extractor separation
-- [ ] Session management improvements
-- [ ] Prompt/response storage
-- [ ] Cost calculation utilities
+8. **Request automated reviews** by mentioning `@codex` and `@claude` as noted
+   in `docs/WORKFLOW.md`.
 
-## 🤝 HANDOFF NOTES
+## 🔬 Testing & Verification
 
-When handing off to another developer or LLM:
+- `just test` wraps `uv run pytest` and enforces coverage for
+  `src/llm_cli_core`.
+- Target suites with `just test unit` or `just test integration`.
+- Store coverage artifacts in `.build/coverage/` when needed.
+- Regenerate fixtures when telemetry payloads change.
+- Run `just ci` before `gt submit` to mirror CI expectations.
 
-1. The core telemetry code is copied but not yet refactored
-2. Tests are basic but functional
-3. Storage and config modules are stubbed out
-4. GitHub Actions are configured but not tested
-5. Package can be installed locally but needs real-world testing
+## 🗂️ Repository Map
 
-## 📚 KEY FILES
+```text
+llm-cli-tools-core/
+|- docs/            # Documentation index, workflow, and how-to guides
+|- scripts/         # Docs validation and supporting tooling
+|- src/llm_cli_core/# Library implementation (config, providers, storage,
+                    # telemetry)
+|- tests/           # Unit and integration suites
+|- AGENTS.md        # Cross-agent rules
+|- CLAUDE.md        # Canonical workflow guidance
+|- justfile         # Development commands (delegating to UV)
+```
 
-- `justfile` - All development commands
-- `pyproject.toml` - Package configuration
-- `src/llm_cli_core/telemetry/core.py` - Main telemetry logic (from
-  ai_telemetry.py)
-- `tests/unit/test_telemetry.py` - Basic telemetry tests
-- `.github/workflows/` - CI/CD automation
+## 📚 Key References
+
+- [`AGENTS.md`](./AGENTS.md) - cross-agent rules for Claude, Codex, and peers.
+- [`docs/WORKFLOW.md`](./docs/WORKFLOW.md) - GT workflow, review etiquette, and
+  automation usage.
+- [`docs/index.md`](./docs/index.md) - documentation taxonomy and maintenance
+  checklist.
+- [`docs/development/claude-commands.md`](./docs/development/claude-commands.md)
+  - slash-command catalogue.
+- [Deployment GT workflow][deployment-gt] - GT guardrails.
+
+## 📦 Distribution & Versioning
+
+- Releases are cut from `main` via GT-managed PRs.
+- Conventional commits drive version bumps: `feat:` (minor), `fix:` (patch),
+  `BREAKING CHANGE` (major).
+- Never edit `pyproject.toml` version fields manually; rely on automation.
+
+## 💾 Storage & Configuration
+
+- Load storage locations from `.env` (`LLM_TELEMETRY_DIR`, etc.).
+- Ensure directories exist before writing and avoid absolute paths.
+- Keep telemetry helpers opt-in via `LLM_TELEMETRY_ENABLED` flags.
+
+## ✅ Review Checklist
+
+- [ ] `gt status` and `gt log --stack` are clean before and after work.
+- [ ] Tests were written first (red) and `just test` passes locally (green).
+- [ ] `just lint check` and `just docs check` succeed.
+- [ ] Docs updated for new behaviors, commands, or workflows.
+- [ ] No direct `git` commands used during the stack.
+- [ ] PR description follows Summary/Testing format and notes telemetry impact.
+
+## 🤖 Slash Commands & Automation
+
+Slash commands map to `.claude/commands/*.md`.
+
+1. Open the command file.
+2. Execute the documented `just` or script commands verbatim.
+3. Capture outputs or artifacts specified by the command.
+
+## 🧯 Safety & Housekeeping
+
+- Temporary files live in `.build/tmp/`; clean up after use.
+- Never commit secrets; copy `.env.example` to `.env` for local runs.
+- Respect telemetry toggles when exercising instrumentation.
+- Keep the `updated:` metadata current when instructions change.
+
+Keep this guide in sync with `AGENTS.md`; update both whenever workflows
+evolve.
+
+[deployment-gt]: ./docs/claude-components/deployment-gt-workflow.md
