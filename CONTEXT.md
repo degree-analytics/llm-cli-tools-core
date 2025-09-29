@@ -33,10 +33,8 @@ We have multiple AI-powered CLI tools across different repositories
 - Session correlation
 - Prometheus/Grafana integration
 
-Currently, we have **identical copies** of `ai_telemetry.py` in:
-
-- `/Users/chadwalters/source/work/spacewalker/scripts/helpers/ai_telemetry.py`
-- `/Users/chadwalters/source/work/mimir/src/mimir/core/ai_telemetry.py`
+Currently, we have **identical copies** of `ai_telemetry.py` in multiple
+projects including spacewalker and mimir.
 
 This duplication is problematic because:
 
@@ -65,7 +63,7 @@ llm-cli-tools-core/
 │   ├── storage/              # Placeholder for storage implementations
 │   ├── providers/            # Placeholder for provider wrappers
 │   └── config/               # Placeholder for configuration
-├── tests/unit/               # Basic tests (70% passing)
+├── tests/unit/               # Basic tests (19 tests passing, 80% coverage)
 ├── .github/workflows/        # CI/CD and auto-versioning
 ├── justfile                  # UV-based development workflow
 ├── CLAUDE.md                 # Development guidelines
@@ -82,7 +80,7 @@ llm-cli-tools-core/
 2. **GitHub as Package Registry**
    - No PyPI account needed
    - Install via:
-     `uv pip install "llm-cli-tools-core @ git+https://github.com/spacecargo/llm-cli-tools-core@v0.1.0"`
+     `uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.4"`
    - Automatic versioning based on commit messages
 
 3. **Per-Project Storage**
@@ -109,7 +107,7 @@ llm-cli-tools-core/
 
 #### 1. **Fix Failing Tests** (Priority: HIGH)
 
-- 3 tests fail due to mock path issues
+- 19 tests passing, 80% coverage
 - The `requests` module is imported inside functions, not at module level
 - Need to fix mock patches to use the correct import path
 
@@ -159,7 +157,7 @@ class Config:
 Install via:
 
 ```bash
-uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.0"
+uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.4"
 ```
 
 #### 5. **Integration Testing** (Priority: MEDIUM)

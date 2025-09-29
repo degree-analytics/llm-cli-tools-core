@@ -30,166 +30,27 @@ consistent execution.
 
 ## Available Commands
 
-### Core Workflow Commands
+### Documentation Analysis Commands
 
-#### `/commit`
+#### `/ground-truth`
 
-Commits changes following project standards with verification.
+Verifies what documentation claims versus what source code actually implements.
 
-- Runs linting and tests before committing
-- Follows conventional commit format
-- Includes co-author attribution
-
-#### `/complete-next-task`
-
-Executes the next task from TaskMaster with full verification.
-
-- Updates task status throughout execution
-- Runs appropriate tests
-- Documents verification results
-
-#### `/init-context`
-
-Loads project context at the start of a session.
-
-- Reads CLAUDE.md instructions
-- Loads relevant documentation
-- Sets up for current branch/task
-
-### PR and Review Commands
-
-#### `/review-pr-comments`
-
-Analyzes PR comments and provides numbered action items for easy selection.
-
-- Uses pr-review-analyzer agent with `just gh-pr comments`
-- Presents actionable feedback as numbered items
-- Supports flexible selection (e.g., "1,3" or "all")
+- Analyzes actual source code implementations using ast-grep
+- Examines configuration and test files
+- Identifies gaps between documented and actual behavior
+- Provides structured gap analysis report
 
 ```bash
-# Review current branch's PR
-/review-pr-comments
+# Verify authentication implementation
+/ground-truth "CSRF authentication"
 
-# Review specific PR
-/review-pr-comments 290
+# Check API implementation details
+/ground-truth "JWT token handling"
+
+# Analyze workflow implementation
+/ground-truth "user registration flow"
 ```
-
-#### `/request-review`
-
-Updates PR description and requests review.
-
-- Summarizes changes made
-- Updates PR body
-- Can request specific reviewers
-
-#### `/generate-pr-title-description`
-
-Creates PR title and description from changes.
-
-- Analyzes git diff
-- Follows PR template
-- Links to Linear tickets
-
-### Development Commands
-
-#### `/fix-linear-issue <issue-id>`
-
-Complete workflow for fixing a Linear issue.
-
-- Creates branch
-- Updates task status
-- Implements fix with verification
-
-#### `/create-tasks-from-linear`
-
-Imports Linear issues into TaskMaster.
-
-- Fetches assigned issues
-- Creates local tasks
-- Sets priorities
-
-#### `/update-linear-ticket`
-
-Syncs PR progress back to Linear.
-
-- Updates issue status
-- Adds PR link
-- Posts progress comments
-
-### Release Management
-
-#### `/changelog-add`
-
-Adds entry to changelog following keep-a-changelog format.
-
-- Categorizes changes correctly
-- Maintains format consistency
-- Prepares for release
-
-#### `/changelog-release`
-
-Prepares changelog for release.
-
-- Moves unreleased to version section
-- Updates version numbers
-- Creates release commit
-
-#### `/version-bump`
-
-Updates version numbers across the project.
-
-- Updates package.json files
-- Updates version constants
-- Maintains consistency
-
-#### `/smart-dev-to-main`
-
-Orchestrates dev→main merge workflow.
-
-- Ensures CI passing
-- Creates merge PR
-- Handles deployment
-
-### Utility Commands
-
-#### `/create-command`
-
-Creates a new Claude command from template.
-
-- Interactive command builder
-- Follows command patterns
-- Adds to commands directory
-
-#### `/cleanup-docs-justfile`
-
-Reviews and updates documentation after development.
-
-- Identifies outdated docs
-- Suggests justfile commands
-- Updates INDEX.md
-
-#### `/analyze-ci-failure`
-
-Investigates CI/CD failures with detailed analysis.
-
-- Fetches failure logs
-- Identifies root causes
-- Suggests fixes
-
-### TaskMaster Commands (`/tm/*`)
-
-The TaskMaster suite provides comprehensive task management:
-
-```bash
-/tm/help              # Show all TM commands
-/tm/next              # Get next priority task
-/tm/add              # Add new task
-/tm/board            # Visual task board
-/tm/workflows/daily  # Daily standup workflow
-```
-
-See the internal TaskMaster guide (`@.claude/TM_COMMANDS_GUIDE.md`) for complete
-documentation.
 
 ## Command Structure
 
@@ -240,10 +101,7 @@ Links to similar or complementary commands.
 ### 1. Create Command File
 
 ```bash
-# Use the create-command helper
-/create-command
-
-# Or manually create
+# Manually create command file
 touch .claude/commands/my-command.md
 ```
 
@@ -329,16 +187,14 @@ Commands that automate repetitive tasks:
 
 Commands integrate with:
 
-- **TaskMaster** - Task tracking and status updates
 - **Justfile** - Standardized command execution
 - **Git/GT** - Version control operations
-- **Linear** - Issue tracking synchronization
 - **CI/CD** - Build and deployment automation
 
 ## Verification
 
-- Run `/commit --help` (or another command) in Claude and confirm the
-  descriptions match this guide.
+- Run `/ground-truth --help` in Claude and confirm the description matches
+  this guide.
 - Ensure new or updated commands include runnable examples before merging
   related changes.
 
@@ -379,8 +235,7 @@ Potential improvements for the command system:
 
 ## Related Documentation
 
-- TaskMaster Guide (`@.claude/TM_COMMANDS_GUIDE.md`) - Complete task management
-- Justfile Workflow – Reference the core Spacewalker justfile patterns for
+- Justfile Workflow – Reference the core project justfile patterns for
   command usage.
 - Development Setup – Follow the repository README/CLAUDE instructions for
   local environment configuration.

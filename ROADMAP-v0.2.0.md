@@ -249,7 +249,7 @@ class AITelemetryTracker:
         # Existing Prometheus code...
 
         # NEW: Also store locally
-        if os.getenv("LLM_TELEMETRY_STORAGE", "true").lower() == "true":
+        if os.getenv("LLM_TELEMETRY_STORAGE_ENABLED", "true").lower() == "true":
             storage = LocalStorage()
             storage.store_telemetry(self.to_dict())
 ```
@@ -271,7 +271,7 @@ Usage:
 
 ```bash
 # .env configuration
-LLM_TELEMETRY_STORAGE=true           # Enable local storage (default: true)
+LLM_TELEMETRY_STORAGE_ENABLED=true   # Enable local storage (default: true)
 LLM_TELEMETRY_DIR=.llm-telemetry     # Storage directory (default: .llm-telemetry)
 LLM_STORE_PROMPTS=false              # Store full prompts (default: false)
 LLM_STORE_RESPONSES=false            # Store full responses (default: false)
@@ -283,7 +283,7 @@ LLM_STORAGE_MAX_SIZE_MB=100          # Max storage size in MB (default: 100)
 
 ### For existing users (v0.1.0 → v0.2.0)
 1. **No breaking changes** - Telemetry continues to work
-2. **Storage is automatic** - Set `LLM_TELEMETRY_STORAGE=false` to disable
+2. **Storage is automatic** - Set `LLM_TELEMETRY_STORAGE_ENABLED=false` to disable
 3. **New client abstractions** - Gradually migrate from direct client usage
 
 ### Migration Examples

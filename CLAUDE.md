@@ -79,6 +79,8 @@ gt status             # Verify branch sync before and after work
 - `just test` wraps `uv run pytest` and enforces coverage for
   `src/llm_cli_core`.
 - Target suites with `just test unit` or `just test integration`.
+  Note: Integration tests not yet implemented - directory structure prepared for
+  future tests
 - Store coverage artifacts in `.build/coverage/` when needed.
 - Regenerate fixtures when telemetry payloads change.
 - Run `just ci` before `gt submit` to mirror CI expectations.

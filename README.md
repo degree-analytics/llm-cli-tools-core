@@ -52,8 +52,8 @@ shared primitives here and leave app-specific workflows in their home repos.
 ### From GitHub Release (recommended)
 
 ```bash
-# Replace v0.1.3 with the latest tag from the releases page
-uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.3"
+# Replace v0.1.4 with the latest tag from the releases page
+uv pip install "llm-cli-tools-core @ git+https://github.com/degree-analytics/llm-cli-tools-core@v0.1.4"
 ```
 
 Releases are cut automatically whenever a `feat:` or `fix:` (or `BREAKING`)
@@ -293,7 +293,7 @@ For day-to-day usage tips and GT/Claude best practices, see:
 
 ```text
 llm-cli-tools-core/
-├── analytics/              # Aggregations used by the CLI
+├── src/llm_cli_core/analytics/ # Aggregations used by the CLI
 │   └── costs.py
 ├── cli.py                  # `llm-telemetry` entry point
 ├── config/settings.py      # Environment / .env configuration

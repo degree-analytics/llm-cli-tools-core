@@ -25,8 +25,9 @@ source of workflow rules.
 - Slash commands map to `.claude/commands/*.md`. Open the command file, execute
   the documented `just` or helper scripts, and preserve any output requirements.
 - Example usages:
-  - `/ground-truth main`
-  - `@.claude/commands/ground-truth --since 2025-09-28T03:40:00Z`
+  - `/ground-truth "CSRF authentication"`
+  - `/ground-truth "JWT token handling"`
+  - `/ground-truth "user registration flow"`
 
 ## Repository Map
 - **Library implementation**: `src/llm_cli_core/` (config, providers, storage,

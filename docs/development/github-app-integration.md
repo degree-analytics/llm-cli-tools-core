@@ -88,7 +88,7 @@ jobs:
       - name: Check out llm-cli-tools-core
         uses: actions/checkout@v4
         with:
-          repository: org-name/llm-cli-tools-core
+          repository: degree-analytics/llm-cli-tools-core
           token: ${{ steps.app-token.outputs.token }}
           path: llm-cli-tools-core
 ```

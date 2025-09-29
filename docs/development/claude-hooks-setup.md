@@ -1,7 +1,7 @@
 ---
 purpose:
   "Explain how to enable and validate Claude Code project hooks for
-  Spacewalker-derived repositories."
+  llm-cli-tools-core-derived repositories."
 audience:
   "Developers and automation engineers using Claude Code with llm-cli-tools-core"
 owner: "Core AI Tools"
@@ -11,7 +11,7 @@ status: "Active"
 
 # 🪝 Claude Code Hooks Setup Guide
 
-**SpaceWalker includes project-specific Claude Code hooks for enhanced
+**llm-cli-tools-core includes project-specific Claude Code hooks for enhanced
 development workflow.**
 
 ## Overview
@@ -50,7 +50,7 @@ ls .claude/settings.json
 Claude Code automatically detects and uses project-specific settings when
 working in this repository. **No additional setup required!**
 
-The hooks are enabled by default when you work in the SpaceWalker directory.
+The hooks are enabled by default when you work in the llm-cli-tools-core directory.
 
 ## How It Works
 
@@ -58,7 +58,7 @@ The hooks are enabled by default when you work in the SpaceWalker directory.
 
 - **Trigger**: When you edit/write Python (.py) or TypeScript
   (.ts/.tsx/.js/.jsx) files
-- **Action**: Runs `just lint check <module> --files <filename>`
+- **Action**: Runs `just lint check`
 - **Output**: Shows warnings for lint issues (never blocks saves)
 - **Performance**: <500ms execution (0.5s timeout in settings), only checks the
   single edited file
@@ -67,7 +67,7 @@ The hooks are enabled by default when you work in the SpaceWalker directory.
 
 ```text
 ⚠️  main.py:
-apps/backend/src/main.py:15:1: F401 'os' imported but unused
+src/llm_cli_core/main.py:15:1: F401 'os' imported but unused
 ```
 
 ### Search Year Update Hook
@@ -129,8 +129,8 @@ Updated: "fastapi docs 2024-2025"
 #### Lint-on-Save (`lint-on-save.sh`)
 
 - Automatically detects project root using `justfile` location
-- Routes to appropriate module: backend, admin, mobile, scripts
-- Uses existing `just lint check <module> --files <file>` commands
+- Routes to appropriate directories: src/, tests/
+- Uses existing `just lint check` commands
 - Shows concise output (first 3 lines of issues only)
 
 #### Search Year Update (`update-search-year.sh`)
@@ -145,7 +145,7 @@ Updated: "fastapi docs 2024-2025"
 ### Hooks Not Running
 
 1. **Check Claude Code version**: Hooks require Claude Code 1.0.54+
-2. **Verify working directory**: Must be in SpaceWalker project root
+2. **Verify working directory**: Must be in llm-cli-tools-core project root
 3. **Check `/doctor`**: Run `/doctor` in Claude Code to validate hook
    configuration
 
@@ -206,14 +206,14 @@ Create `.claude/settings.local.json`:
 ### Works With
 
 - ✅ All existing `just lint` commands
-- ✅ All module-specific linting (backend/admin/mobile)
+- ✅ All directory-specific linting (src/tests)
 - ✅ Global and project-specific Claude settings
 - ✅ Justfile-first workflow patterns
 
 ### Respects
 
 - ✅ File type restrictions (.py, .ts, .tsx, .js, .jsx)
-- ✅ Module boundaries (backend vs admin vs mobile)
+- ✅ Directory boundaries (src vs tests)
 - ✅ Performance constraints (timeouts in seconds, use 0.1 for 100ms)
 - ✅ User escape hatches (@pinned searches)
 
@@ -228,5 +228,5 @@ Create `.claude/settings.local.json`:
 ---
 
 **Questions?** See
-[Claude Code Hooks Documentation](https://docs.anthropic.com/en/docs/claude-code/hooks-guide)
+[Claude Code Hooks Documentation](https://docs.claude.com/en/docs/claude-code/hooks-guide)
 or ask in #engineering Slack.

@@ -36,7 +36,7 @@ inheritance
 
 ## 🌟 System Overview
 
-The Spacewalker project implements a sophisticated AI context management system
+The llm-cli-tools-core project implements a sophisticated AI context management system
 that provides:
 
 - **Modular Components**: Reusable instruction sets via @ file references
@@ -57,17 +57,10 @@ that provides:
 ## 📁 Directory Structure
 
 ```text
-spacewalker/
+llm-cli-tools-core/
 ├── CLAUDE.md                           # Root context with @ references
 ├── docs/claude-components/             # Reusable instruction components
-│   ├── safety-rules.md                # Production and security safety
-│   ├── justfile-workflow.md           # Automation and command patterns
-│   ├── verification-standards.md       # Testing and validation requirements
 │   └── deployment-gt-workflow.md       # Git workflow and deployment rules
-├── apps/admin/CLAUDE.md                # Frontend-specific context
-├── apps/backend/CLAUDE.md              # API-specific context
-├── apps/mobile/CLAUDE.md               # React Native-specific context
-├── sam/CLAUDE.md                       # Infrastructure-specific context
 └── ~/.claude/CLAUDE.md                 # Personal preferences (not in git)
 ```
 
@@ -78,9 +71,6 @@ spacewalker/
 ### Syntax
 
 ```markdown
-@docs/claude-components/safety-rules.md
-@docs/claude-components/justfile-workflow.md
-@docs/claude-components/verification-standards.md
 @docs/claude-components/deployment-gt-workflow.md
 ```
 
@@ -106,43 +96,6 @@ spacewalker/
 ## 🏗️ Component Organization
 
 ### Current Components
-
-#### `docs/claude-components/safety-rules.md`
-
-**Purpose**: Universal safety patterns for production, git, and AWS operations
-
-**Key Rules**:
-
-- Never run production commands without permission
-- Git read-only restrictions (status, diff only)
-- AWS resource protection
-- Production mode management
-
-**When to Update**: New safety requirements, security policy changes
-
-#### `docs/claude-components/justfile-workflow.md`
-
-**Purpose**: Automation-first development patterns and command discovery
-
-**Key Rules**:
-
-- Justfile-first approach for all operations
-- Standard command naming and organization
-- Workflow automation principles
-
-**When to Update**: New automation patterns, justfile enhancements
-
-#### `docs/claude-components/verification-standards.md`
-
-**Purpose**: Testing and validation requirements for task completion
-
-**Key Rules**:
-
-- Never claim "done" without verification
-- Required verification methods (tests, manual validation)
-- TaskMaster integration patterns
-
-**When to Update**: New testing frameworks, validation requirements
 
 #### `docs/claude-components/deployment-gt-workflow.md`
 
@@ -175,8 +128,8 @@ Claude Code automatically discovers CLAUDE.md files by traversing up the
 directory tree:
 
 ```text
-1. Current directory: apps/backend/CLAUDE.md
-2. Parent directory: spacewalker/CLAUDE.md
+1. Current directory: src/llm_cli_core/CLAUDE.md (if exists)
+2. Parent directory: llm-cli-tools-core/CLAUDE.md
 3. Home directory: ~/.claude/CLAUDE.md (if exists)
 ```
 
@@ -194,7 +147,7 @@ directory tree:
 - Shared component references
 - Project-wide patterns
 
-**Layer 3: Domain Specific** (`apps/*/CLAUDE.md`, `sam/CLAUDE.md`)
+**Layer 3: Domain Specific** (project subdirectories)
 
 - Technology-specific patterns
 - Domain workflows and standards
@@ -211,65 +164,20 @@ directory tree:
 
 ## 📱 Domain-Specific Contexts
 
-### Backend Context (`apps/backend/CLAUDE.md`)
+### Core Library Context (`src/llm_cli_core/CLAUDE.md`)
 
 **Focus Areas**:
 
-- Python/FastAPI patterns
-- Database and migration workflows
-- API design standards (no trailing slashes!)
-- Authentication and security patterns
+- Python library patterns
+- Configuration management
+- Telemetry and storage workflows
+- Testing and validation standards
 
 **Key Sections**:
 
 - Code standards and type hints
-- Database testing with RLS verification
-- Async patterns and error handling
-
-### Admin Context (`apps/admin/CLAUDE.md`)
-
-**Focus Areas**:
-
-- React/Next.js development patterns
-- Component architecture standards
-- UI/UX consistency patterns
-- Client-side testing approaches
-
-**Key Sections**:
-
-- TypeScript usage requirements
-- Material-UI component consistency
-- State management patterns
-
-### Mobile Context (`apps/mobile/CLAUDE.md`)
-
-**Focus Areas**:
-
-- React Native/Expo patterns
-- Mobile-specific API integration
-- Build and deployment workflows
-- Device-specific considerations
-
-**Key Sections**:
-
-- Offline-first architecture
-- Performance optimization
-- Platform-specific testing
-
-### Infrastructure Context (`sam/CLAUDE.md`)
-
-**Focus Areas**:
-
-- CloudFormation/SAM patterns
-- AWS deployment procedures
-- Infrastructure security
-- Monitoring and observability
-
-**Key Sections**:
-
-- Resource naming conventions
-- Environment management
-- Deployment order requirements
+- Library API design patterns
+- Configuration loading and validation
 
 ---
 
@@ -352,10 +260,8 @@ directory traversal and is naturally excluded from git repositories.
 
 ```bash
 # Test context in different domains
-cd apps/backend && claude --context-check
-cd apps/admin && claude --context-check
-cd apps/mobile && claude --context-check
-cd sam && claude --context-check
+cd src/llm_cli_core && claude --context-check
+cd tests && claude --context-check
 ```
 
 ---
@@ -446,28 +352,24 @@ claude --show-inheritance
 
 ### Context System Architecture
 
-- **Project Structure** – See the Spacewalker documentation for full repository
+- **Project Structure** – See the llm-cli-tools-core documentation for full repository
   layout guidance.
-- **Development Tools** – Refer to the Spacewalker development tools guide for
-  Claude Code setup and usage.
+- **Development Tools** – Refer to the llm-cli-tools-core development tools
+  guide for Claude Code setup and usage.
 
 ### Domain-Specific Guides
 
-- **Backend API Development** – Follow the Spacewalker backend API context
-  patterns.
-- **Admin Development** – See the Spacewalker admin architecture guide for
-  frontend context patterns.
-- **Mobile Development** – Consult the Spacewalker mobile development patterns
-  guidance.
+- **Library Development** – Follow the llm-cli-tools-core library development
+  patterns for telemetry and configuration management.
 
 ### Workflow Integration
 
 - **TaskMaster Commands** – Internal TaskMaster help (`@tm/help`) for AI-powered
   project management.
-- **Testing Guide** – Spacewalker workflow guidance for verification standards
+- **Testing Guide** – llm-cli-tools-core workflow guidance for verification standards
   implementation.
 
 ---
 
-**Last Updated:** 2025-07-08 **Status:** Current **Maintainer:** Development
+**Last Updated:** 2025-09-28 **Status:** Current **Maintainer:** Development
 Team

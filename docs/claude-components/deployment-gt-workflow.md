@@ -1,30 +1,29 @@
 ---
 purpose:
-  "Define mandatory GT-based deployment rules for code and infrastructure
-  changes."
-audience: "Developers, release managers"
+  "Define mandatory GT-based workflow rules for code changes and library
+  releases."
+audience: "Developers, maintainers"
 owner: "Core AI Tools"
 review: "Quarterly (Jan, Apr, Jul, Oct)"
 status: "Active"
 ---
 
-# 📦 DEPLOYMENT WORKFLOW RULES
+# 📦 GT WORKFLOW RULES
 
-**CRITICAL**: Different types of changes follow different deployment paths:
+**CRITICAL**: Different types of changes follow different workflow paths:
 
 ## When to Use This
 
-- Plan or review any deployment for Spacewalker, Mímir, or shared libraries that
-  rely on GT workflows.
-- Audit release readiness before approving production merges.
+- Plan or review any changes to the llm-cli-tools-core library that rely on GT
+  workflows.
+- Audit release readiness before approving main branch merges.
 
 ## Prerequisites
 
 - `gt` CLI installed and authenticated.
-- Access to required AWS or infrastructure credentials when executing deployment
-  commands.
+- Valid Python environment with UV for local testing.
 
-## Code Changes (apps/, scripts/, packages/)
+## Code Changes (src/, tests/)
 
 1. **ALWAYS use GT workflow** → Create branch → PR to dev → Test → PR to main
 2. **NEVER deploy code directly** to production without PR review
@@ -39,16 +38,13 @@ status: "Active"
    gt submit                              # Create PR to main
    ```
 
-## Infrastructure Changes (sam/, CloudFormation)
+## Library Changes (Config, Dependencies)
 
-1. **Dev environment**: Can use `just aws_deploy_* dev` directly
-2. **Prod environment**:
-   - If changing running services → Follow code workflow (PR first)
-   - If only infrastructure → Can deploy directly with approval
-3. **Examples**:
-   - Updating ECS task definition → PR workflow (affects running code)
-   - Adding S3 bucket → Direct deploy OK (pure infrastructure)
-   - Changing health checks → PR workflow (affects service behavior)
+1. **All changes**: Follow code workflow (PR required)
+2. **Examples**:
+   - Updating dependencies in pyproject.toml → PR workflow
+   - Changing configuration defaults → PR workflow
+   - Adding new telemetry providers → PR workflow
 
 ## GT ESSENTIALS (Minimal Reminders)
 

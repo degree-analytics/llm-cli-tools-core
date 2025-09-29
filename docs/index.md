@@ -111,6 +111,8 @@ The docs tooling reads environment variables (shell or `.env`) to override defau
 - `DOCS_CSPELL_CONFIG` – alternate cspell config path
 - `DOCS_LYCHEE_CONFIG` – alternate lychee config path
 - `DOCS_LYCHEE_VERSION` – required lychee version (default `0.13.0`)
+- `DOCS_LYCHEE_MAX_VERSION` – maximum lychee version (default `0.14.0`)
+- `DOCS_CSPELL_VERSION` – cspell version override
 
 Use overrides sparingly; CI runs with the defaults defined in `scripts/docs_phase2.sh`.
 
