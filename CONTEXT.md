@@ -102,6 +102,12 @@ llm-cli-tools-core/
 - Basic functionality tested and working
 - GitHub Actions configured for CI/CD
 - Auto-versioning based on commit messages
+- Slack release notifications to releases-dev channel
+- Claude Code slash commands for enhanced development workflow
+  - `/commit` - Smart commits with validation
+  - `/pr-analyze-comments` - Interactive PR feedback resolution
+  - `/pr-request-review` - Structured review requests
+  - `/pr-deep-review` - AI-powered review validation
 
 ### What Needs Completion 🔧
 

@@ -272,12 +272,48 @@ Both workflows rely on repository/organization variables (e.g.
 `CLAUDE_MAX_TURNS`) and secrets mirroring the Spacewalker setup. Copy those
 values into this repo before enabling the automations.
 
+### Slack Release Notifications
+
+Release notifications are automatically posted to Slack when a release completes
+on `main`:
+
+- `.github/workflows/notify-slack.yml` – triggers after successful Release
+  workflow completion
+- `.github/workflows/slack-message.yml` – reusable workflow that formats and
+  sends messages
+
+**Required Organization Secrets:**
+
+- `SLACK_BOT_TOKEN` – Slack bot OAuth token with `chat:write` permissions
+- `SLACK_CHANNEL_DEV` – Channel ID for release notifications (releases-dev
+  channel)
+
+Messages include:
+
+- Release version with link to GitHub release page
+- Commit information (SHA, message, author)
+- Optional changelog content if available
+
+### Available Slash Commands
+
+Claude Code provides several slash commands for common workflows:
+
+- `/commit` – Smart commit workflow with lint/test validation and GT integration
+- `/pr-analyze-comments` – Fetch and categorize PR review comments for
+  interactive fixing
+- `/pr-request-review` – Generate structured review request comments with
+  analysis
+- `/pr-deep-review` – Launch parallel agents to investigate and validate review
+  feedback
+
+Command definitions live in `.claude/commands/` and follow repository patterns
+(Justfile-first, GT workflow, conventional commits).
+
 For day-to-day usage tips and GT/Claude best practices, see:
 
 - `docs/claude-components/deployment-gt-workflow.md` – required GT branching
   workflow
-- `docs/development/claude-commands.md` – available slash commands (including
-  Ground Truth)
+- `docs/development/claude-commands.md` – detailed slash command documentation
 - `docs/workflows/claude-review-workflows.md` – how multi-focus reviews operate
 
 ## Release Workflow

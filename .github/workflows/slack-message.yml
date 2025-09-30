@@ -1,0 +1,334 @@
+name: Slack Message Dispatcher
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: Target git branch (e.g., main)
+        required: true
+        type: string
+      status:
+        description: Conclusion status from the triggering workflow run
+        required: true
+        type: string
+      run-url:
+        description: URL to the triggering workflow run
+        required: true
+        type: string
+      head_sha:
+        description: Commit SHA associated with the workflow run
+        required: true
+        type: string
+      actor:
+        description: GitHub username that initiated the workflow run
+        required: true
+        type: string
+      repo:
+        description: Full repository name (owner/repo)
+        required: true
+        type: string
+      include-changelog:
+        description: Whether to append the latest changelog section
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      SLACK_BOT_TOKEN:
+        required: true
+      SLACK_CHANNEL_DEV:
+        required: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Validate required secrets
+        id: validate
+        run: |
+          missing=0
+          if [ -z "${{ secrets.SLACK_BOT_TOKEN }}" ]; then
+            echo "::warning::Missing SLACK_BOT_TOKEN secret. Slack notification will be skipped."
+            missing=1
+          fi
+          if [ -z "${{ secrets.SLACK_CHANNEL_DEV }}" ]; then
+            echo "::notice::SLACK_CHANNEL_DEV is not set. Release notifications will be skipped."
+          fi
+          if [ $missing -eq 1 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine environment metadata
+        id: env-data
+        if: steps.validate.outputs.skip != 'true'
+        env:
+          BRANCH: ${{ inputs.branch }}
+          DEV_CHANNEL: ${{ secrets.SLACK_CHANNEL_DEV }}
+        run: |
+          case "$BRANCH" in
+            main)
+              channel="$DEV_CHANNEL"
+              environment="Main"
+              ;;
+            *)
+              channel=""
+              environment="$BRANCH"
+              ;;
+          esac
+
+          trimmed=$(echo "$channel" | tr -d '[:space:]')
+          if [ -z "$trimmed" ]; then
+            echo "::warning::No Slack channel configured for branch '$BRANCH'. Skipping notification."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+
+      - name: Validate workflow source
+        if: steps.validate.outputs.skip != 'true' && steps.env-data.outputs.skip != 'true'
+        env:
+          REPO: ${{ inputs.repo }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          # Security: Validate workflow_run is from trusted source
+          if [ "$REPO" != "${{ github.repository }}" ]; then
+            echo "::error::Workflow triggered from untrusted repository: $REPO"
+            exit 1
+          fi
+          if [ "$BRANCH" != "main" ]; then
+            echo "::warning::Workflow triggered from non-main branch: $BRANCH"
+          fi
+          echo "✓ Validated workflow source: $REPO on $BRANCH"
+
+      - name: Capture commit metadata
+        id: commit
+        if: steps.validate.outputs.skip != 'true' && steps.env-data.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ inputs.repo }}
+          BRANCH: ${{ inputs.branch }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          # For main branch releases, get latest commit from main; otherwise use head_sha
+          if [ "$BRANCH" = "main" ]; then
+            # Get latest commit on main branch
+            commit_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha')
+          else
+            commit_sha="$HEAD_SHA"
+          fi
+
+          # Fetch commit metadata via API
+          commit_data=$(gh api "repos/$REPO/commits/$commit_sha")
+          subject=$(echo "$commit_data" | jq -r '.commit.message' | head -n1)
+          short_sha=$(echo "$commit_sha" | cut -c1-7)
+
+          # Get tags for this commit to find version (handle both lightweight and annotated tags)
+          # First, get lightweight tags (object.type = "commit", object.sha = commit SHA)
+          # Then, get annotated tags (object.type = "tag") and dereference them
+          version=""
+          all_tags=$(gh api "repos/$REPO/git/refs/tags" --jq '.[] | {ref: .ref, type: .object.type, sha: .object.sha}')
+
+          # Find lightweight tags pointing to our commit
+          lightweight=$(echo "$all_tags" | jq -r "select(.type == \"commit\" and .sha == \"$commit_sha\") | .ref" | sed 's|refs/tags/||')
+
+          # Find annotated tags - need to dereference each one
+          annotated=$(echo "$all_tags" | jq -r 'select(.type == "tag") | "\(.ref)|\(.sha)"' | while IFS='|' read -r tag_ref tag_sha; do
+            if [ -n "$tag_ref" ] && [ -n "$tag_sha" ]; then
+              # Dereference the tag object to get the commit SHA it points to
+              target_sha=$(gh api "repos/$REPO/git/tags/$tag_sha" --jq '.object.sha // empty' 2>/dev/null || true)
+              if [ "$target_sha" = "$commit_sha" ]; then
+                echo "$tag_ref" | sed 's|refs/tags/||'
+              fi
+            fi
+          done)
+
+          # Combine results and find first version tag
+          tags=$(echo -e "$lightweight\n$annotated" | grep -v '^$' || true)
+          version=$(echo "$tags" | grep -E '^v[0-9]' | head -n1 || true)
+
+          echo "subject<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$subject" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "short=$short_sha" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Extract newest changelog entry
+        id: changelog
+        if: ${{ steps.validate.outputs.skip != 'true' && steps.env-data.outputs.skip != 'true' && inputs['include-changelog'] }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ inputs.repo }}
+        run: |
+          # Fetch CHANGELOG.md from API (raw content)
+          changelog_content=$(gh api "repos/$REPO/contents/CHANGELOG.md" \
+            -H "Accept: application/vnd.github.raw" 2>/dev/null || true)
+
+          if [ -z "$changelog_content" ]; then
+            echo "::warning::CHANGELOG.md not found. Skipping changelog block."
+            exit 0
+          fi
+
+          # Parse changelog with Python
+          export CHANGELOG_CONTENT="$changelog_content"
+          python - <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          output_path = Path(os.environ["GITHUB_OUTPUT"])
+          text = os.environ.get("CHANGELOG_CONTENT", "")
+
+          if not text:
+              print("::warning::CHANGELOG.md is empty. Skipping changelog block.")
+              sys.exit(0)
+
+          pattern = re.compile(r"^##\s+\[(?P<version>[^\]]+)\]\s*-\s*(?P<date>[^\n]+)\n(?P<body>.*?)(?=^##\s+\[|\Z)", re.MULTILINE | re.DOTALL)
+          match = pattern.search(text)
+          if not match:
+              print("::warning::No release section found in CHANGELOG.md. Skipping changelog block.")
+              sys.exit(0)
+
+          body = match.group('body').strip()
+          with output_path.open("a", encoding="utf-8") as fh:
+              fh.write(f"title={match.group('version').strip()} - {match.group('date').strip()}\n")
+              fh.write("body<<EOF\n")
+              fh.write(f"{body}\n")
+              fh.write("EOF\n")
+          PY
+
+      - name: Build Slack payload
+        id: payload
+        if: steps.validate.outputs.skip != 'true' && steps.env-data.outputs.skip != 'true'
+        env:
+          STATUS: ${{ inputs.status }}
+          RUN_URL: ${{ inputs['run-url'] }}
+          HEAD_SHA: ${{ steps.commit.outputs.commit_sha }}
+          ACTOR: ${{ inputs.actor }}
+          REPO: ${{ inputs.repo }}
+          CHANNEL: ${{ steps.env-data.outputs.channel }}
+          ENVIRONMENT: ${{ steps.env-data.outputs.environment }}
+          SUBJECT: ${{ steps.commit.outputs.subject }}
+          SHORT_SHA: ${{ steps.commit.outputs.short }}
+          VERSION: ${{ steps.commit.outputs.version }}
+          INCLUDE_CHANGELOG: ${{ inputs['include-changelog'] }}
+          CHANGELOG_TITLE: ${{ steps.changelog.outputs.title }}
+          CHANGELOG_BODY: ${{ steps.changelog.outputs.body }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          status = os.environ.get("STATUS", "unknown")
+          emoji = ":large_green_circle:" if status.lower() == "success" else ":red_circle:"
+          version = os.environ.get("VERSION", "")
+
+          # Build title with version if available
+          env_name = os.environ.get('ENVIRONMENT', 'CI')
+          if version:
+              title = f"{emoji} *{env_name} Release {status.upper()}* – {version}"
+              text = f"{emoji} {env_name} Release {status.upper()} – {version}"
+          else:
+              title = f"{emoji} *{env_name} Release {status.upper()}*"
+              text = f"{emoji} {env_name} Release {status.upper()}"
+
+          run_url = os.environ.get("RUN_URL")
+          actor = os.environ.get("ACTOR")
+          subject = os.environ.get("SUBJECT", "")
+          short_sha = os.environ.get("SHORT_SHA", "")
+          repo = os.environ.get("REPO", "")
+          head_sha = os.environ.get("HEAD_SHA", "")
+          include_changelog = os.environ.get("INCLUDE_CHANGELOG", "false").lower() == "true"
+
+          commit_url = None
+          if repo and head_sha:
+              commit_url = f"https://github.com/{repo}/commit/{head_sha}"
+
+          header_lines = []
+          if version:
+              # Add version as first line with link to release if available
+              if repo:
+                  release_url = f"https://github.com/{repo}/releases/tag/{version}"
+                  header_lines.append(f"• *Version*: <{release_url}|{version}>")
+              else:
+                  header_lines.append(f"• *Version*: {version}")
+
+          if short_sha:
+              if commit_url:
+                  header_lines.append(f"• *Commit*: <{commit_url}|{short_sha}> – \"{subject}\"")
+              elif run_url:
+                  header_lines.append(f"• *Commit*: <{run_url}|{short_sha}> – \"{subject}\"")
+              elif subject:
+                  header_lines.append(f"• *Commit*: {short_sha} – \"{subject}\"")
+          elif subject:
+              header_lines.append(f"• *Commit*: {short_sha or 'unknown'} – \"{subject}\"")
+          if actor:
+              header_lines.append(f"• *Actor*: @{actor}")
+          if repo:
+              header_lines.append(f"• *Repo*: {repo}")
+          header_text = "\n".join(header_lines)
+
+          payload = {
+              "channel": os.environ.get("CHANNEL"),
+              "text": text,
+              "blocks": [
+                  {
+                      "type": "section",
+                      "text": {
+                          "type": "mrkdwn",
+                          "text": f"{title}\n{header_text}"
+                      }
+                  }
+              ]
+          }
+
+          if run_url:
+              payload["blocks"].append({
+                  "type": "context",
+                  "elements": [
+                      {
+                          "type": "mrkdwn",
+                          "text": f"<{run_url}|View run details>"
+                      }
+                  ]
+              })
+
+          if include_changelog:
+              title = os.environ.get("CHANGELOG_TITLE")
+              body = os.environ.get("CHANGELOG_BODY")
+              if title and body:
+                  payload["blocks"].append({"type": "divider"})
+                  payload["blocks"].append({
+                      "type": "section",
+                      "text": {
+                          "type": "mrkdwn",
+                          "text": f"*Latest changelog* – {title}\n```{body}```"
+                      }
+                  })
+
+          with open("payload.json", "w", encoding="utf-8") as fh:
+              json.dump(payload, fh)
+          PY
+
+      - name: Send Slack message
+        id: slack
+        if: steps.validate.outputs.skip != 'true' && steps.env-data.outputs.skip != 'true'
+        continue-on-error: true
+        uses: slackapi/slack-github-action@v2
+        with:
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload-file-path: payload.json
+
+      - name: Log Slack post result
+        if: always() && steps.validate.outputs.skip != 'true' && steps.env-data.outputs.skip != 'true'
+        run: |
+          if [ "${{ steps.slack.outcome }}" = "failure" ]; then
+            echo "::warning::Slack notification failed. Check prior step for details."
+          else
+            echo "Slack notification step outcome: ${{ steps.slack.outcome }}"
+          fi
