@@ -37,6 +37,7 @@ uv.lock
 .tox/
 htmlcov/
 .hypothesis/
+.build/
 
 # IDE
 .vscode/
