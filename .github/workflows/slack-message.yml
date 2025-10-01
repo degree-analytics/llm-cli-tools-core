@@ -112,34 +112,39 @@ jobs:
           BRANCH: ${{ inputs.branch }}
           HEAD_SHA: ${{ inputs.head_sha }}
         run: |
-          # For main branch releases, get latest commit from main; otherwise use head_sha
+          # For main branch releases, we need to handle two commits:
+          # 1. The original commit (HEAD_SHA) - for the commit message
+          # 2. The version bump commit (latest main) - for finding the tag
           if [ "$BRANCH" = "main" ]; then
-            # Get latest commit on main branch
-            commit_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha')
+            # Use original commit for message/display
+            commit_sha="$HEAD_SHA"
+            # But check latest main for the tag (Release workflow creates version bump commit)
+            tag_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha')
           else
             commit_sha="$HEAD_SHA"
+            tag_sha="$HEAD_SHA"
           fi
 
-          # Fetch commit metadata via API
+          # Fetch commit metadata via API (use original commit for message)
           commit_data=$(gh api "repos/$REPO/commits/$commit_sha")
           subject=$(echo "$commit_data" | jq -r '.commit.message' | head -n1)
           short_sha=$(echo "$commit_sha" | cut -c1-7)
 
-          # Get tags for this commit to find version (handle both lightweight and annotated tags)
+          # Get tags for the tag_sha to find version (handle both lightweight and annotated tags)
           # First, get lightweight tags (object.type = "commit", object.sha = commit SHA)
           # Then, get annotated tags (object.type = "tag") and dereference them
           version=""
           all_tags=$(gh api "repos/$REPO/git/refs/tags" --jq '.[] | {ref: .ref, type: .object.type, sha: .object.sha}')
 
-          # Find lightweight tags pointing to our commit
-          lightweight=$(echo "$all_tags" | jq -r "select(.type == \"commit\" and .sha == \"$commit_sha\") | .ref" | sed 's|refs/tags/||')
+          # Find lightweight tags pointing to our tag commit
+          lightweight=$(echo "$all_tags" | jq -r "select(.type == \"commit\" and .sha == \"$tag_sha\") | .ref" | sed 's|refs/tags/||')
 
           # Find annotated tags - need to dereference each one
-          annotated=$(echo "$all_tags" | jq -r 'select(.type == "tag") | "\(.ref)|\(.sha)"' | while IFS='|' read -r tag_ref tag_sha; do
-            if [ -n "$tag_ref" ] && [ -n "$tag_sha" ]; then
+          annotated=$(echo "$all_tags" | jq -r 'select(.type == "tag") | "\(.ref)|\(.sha)"' | while IFS='|' read -r tag_ref tag_obj_sha; do
+            if [ -n "$tag_ref" ] && [ -n "$tag_obj_sha" ]; then
               # Dereference the tag object to get the commit SHA it points to
-              target_sha=$(gh api "repos/$REPO/git/tags/$tag_sha" --jq '.object.sha // empty' 2>/dev/null || true)
-              if [ "$target_sha" = "$commit_sha" ]; then
+              target_sha=$(gh api "repos/$REPO/git/tags/$tag_obj_sha" --jq '.object.sha // empty' 2>/dev/null || true)
+              if [ "$target_sha" = "$tag_sha" ]; then
                 echo "$tag_ref" | sed 's|refs/tags/||'
               fi
             fi
@@ -226,21 +231,33 @@ jobs:
           status = os.environ.get("STATUS", "unknown")
           emoji = ":large_green_circle:" if status.lower() == "success" else ":red_circle:"
           version = os.environ.get("VERSION", "")
+          repo = os.environ.get("REPO", "")
 
-          # Build title with version if available
+          # Extract repo name from "owner/repo" format
+          repo_name = repo.split('/')[-1] if repo else ""
+
+          # Build title with repo name and version if available
           env_name = os.environ.get('ENVIRONMENT', 'CI')
-          if version:
-              title = f"{emoji} *{env_name} Release {status.upper()}* – {version}"
-              text = f"{emoji} {env_name} Release {status.upper()} – {version}"
+          if repo_name:
+              if version:
+                  title = f"{emoji} *{repo_name} ({env_name}) Release {status.upper()}* – {version}"
+                  text = f"{emoji} {repo_name} ({env_name}) Release {status.upper()} – {version}"
+              else:
+                  title = f"{emoji} *{repo_name} ({env_name}) Release {status.upper()}*"
+                  text = f"{emoji} {repo_name} ({env_name}) Release {status.upper()}"
           else:
-              title = f"{emoji} *{env_name} Release {status.upper()}*"
-              text = f"{emoji} {env_name} Release {status.upper()}"
+              # Fallback to old format if no repo
+              if version:
+                  title = f"{emoji} *{env_name} Release {status.upper()}* – {version}"
+                  text = f"{emoji} {env_name} Release {status.upper()} – {version}"
+              else:
+                  title = f"{emoji} *{env_name} Release {status.upper()}*"
+                  text = f"{emoji} {env_name} Release {status.upper()}"
 
           run_url = os.environ.get("RUN_URL")
           actor = os.environ.get("ACTOR")
           subject = os.environ.get("SUBJECT", "")
           short_sha = os.environ.get("SHORT_SHA", "")
-          repo = os.environ.get("REPO", "")
           head_sha = os.environ.get("HEAD_SHA", "")
           include_changelog = os.environ.get("INCLUDE_CHANGELOG", "false").lower() == "true"
 
